@@ -25,6 +25,21 @@ instance Arbitrary TimeZone where
 instance Arbitrary UnixDate where
   arbitrary = choose (minBound, maxBound)
 
+instance Arbitrary UnixTime where
+  arbitrary = choose (minBound, maxBound)
+
+instance Arbitrary UnixTimeMillis where
+  arbitrary = choose (minBound, maxBound)
+
+instance Arbitrary UnixTimeMicros where
+  arbitrary = choose (minBound, maxBound)
+
+instance Arbitrary UnixTimeNanos where
+  arbitrary = choose (minBound, maxBound)
+
+instance Arbitrary UnixTimePicos where
+  arbitrary = choose (minBound, maxBound)
+
 instance Arbitrary UnixDateTime where
   arbitrary = choose (minBound, maxBound)
 
@@ -113,13 +128,18 @@ test5 x | x == fromDateTimeZoneStruct (toDateTimeZoneStruct x) = True
 test6 :: (Convertible x Calendar.Day, Convertible Calendar.Day x, Eq x, Show x, Zone x) => x -> Bool
 test6 x | x' == convert (convert x' :: Calendar.Day) = True
         | otherwise = error $ "test6: " ++ show x'
-        where x' = rezone x utc
+        where x' = x `toTimeZone` utc
 
 -- | Test utc time conversions.
 test7 :: (Convertible x UTCTime, Convertible UTCTime x, Eq x, Show x, Zone x) => x -> Bool
 test7 x | x' == convert (convert x' :: UTCTime) = True
         | otherwise = error $ "test7: " ++ show x'
-        where x' = rezone x utc
+        where x' = x `toTimeZone` utc
+
+-- | Test Unix time struct conversions.
+test8 :: (Eq x, Time x, Show x, Unix x) => x -> Bool
+test8 x | x == fromTimeStruct (toTimeStruct x) = True
+        | otherwise = error $ "test8: " ++ show x
 
 -- | Test properties.
 main :: IO ()
@@ -147,3 +167,8 @@ main = do
   quickCheck (test7 :: LocalDateTimeMicros -> Bool)
   quickCheck (test7 :: LocalDateTimeNanos  -> Bool)
   quickCheck (test7 :: LocalDateTimePicos  -> Bool)
+  quickCheck (test8 :: UnixTime            -> Bool)
+  quickCheck (test8 :: UnixTimeMillis      -> Bool)
+  quickCheck (test8 :: UnixTimeMicros      -> Bool)
+  quickCheck (test8 :: UnixTimeNanos       -> Bool)
+  quickCheck (test8 :: UnixTimePicos       -> Bool)

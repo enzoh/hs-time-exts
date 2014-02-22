@@ -8,14 +8,14 @@
 -- | Haskell bindings to the C time library.
 module Data.Time.Exts.C where
 
-import Data.Convertible (Convertible(..))
-import Foreign.C.String (CString)
-import Foreign.C.Types (CInt(..), CLong, CTime(..))
-import Foreign.Marshal.Alloc (alloca)
+import Data.Convertible       (Convertible(..))
+import Foreign.C.String       (CString)
+import Foreign.C.Types        (CInt(..), CLong, CTime(..))
+import Foreign.Marshal.Alloc  (alloca)
 import Foreign.Marshal.Unsafe (unsafeLocalState)
-import Foreign.Marshal.Utils (with)
-import Foreign.Ptr (FunPtr, Ptr, nullPtr, plusPtr)
-import Foreign.Storable (Storable(..))
+import Foreign.Marshal.Utils  (with)
+import Foreign.Ptr            (FunPtr, Ptr, nullPtr, plusPtr)
+import Foreign.Storable       (Storable(..))
 
 #include <bindings.dsl.h>
 #include <time.h>
@@ -33,11 +33,6 @@ import Foreign.Storable (Storable(..))
 #field tm_isdst  , CInt
 #field tm_gmtoff , CLong
 #field tm_zone   , CString
-#stoptype
-
-#starttype struct timespec
-#field tv_sec  , CLong
-#field tv_nsec , CLong
 #stoptype
 
 #starttype struct timeval

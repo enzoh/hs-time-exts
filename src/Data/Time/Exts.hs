@@ -24,7 +24,7 @@ module Data.Time.Exts (
 
      ) where
 
-import Data.Time.Exts.Base
+import Data.Time.Exts.Base hiding (TimeZone)
 import Data.Time.Exts.C
 import Data.Time.Exts.Local
 import Data.Time.Exts.Unix

@@ -14,15 +14,18 @@ module Data.Time.Exts.Base (
 
  -- ** Classes
        Date(..)
+     , Time(..)
+     , Zone(..)
      , DateTime(..)
      , DateZone(..)
+     , TimeZone(..)
      , DateTimeZone(..)
      , DateTimeMath(..)
      , Duration(..)
-     , Zone(..)
 
  -- ** Structs
      , DateStruct(..)
+     , TimeStruct(..)
      , DateTimeStruct(..)
      , DateZoneStruct(..)
      , DateTimeZoneStruct(..)
@@ -49,6 +52,7 @@ module Data.Time.Exts.Base (
  -- ** Durations
      , epochToDate
      , epochToTime
+     , midnightToTime
 
  -- ** Utilities
      , isLeapYear
@@ -57,14 +61,14 @@ module Data.Time.Exts.Base (
 
      ) where
 
-import Control.Arrow (first)
-import Data.Aeson (FromJSON, ToJSON)
-import Data.Int (Int32, Int64)
-import Data.Time.Exts.Zone (TimeZone)
-import Data.Typeable (Typeable)
-import GHC.Generics (Generic)
-import Text.Printf (PrintfArg)
-import System.Random (Random(..))
+import           Control.Arrow             (first)
+import           Data.Aeson                (FromJSON, ToJSON)
+import           Data.Int                  (Int32, Int64)
+import qualified Data.Time.Exts.Zone as TZ (TimeZone)
+import           Data.Typeable             (Typeable)
+import           GHC.Generics              (Generic)
+import           Text.Printf               (PrintfArg)
+import           System.Random             (Random(..))
 
 class Date d where
 
@@ -74,7 +78,20 @@ class Date d where
    -- | Decompose a timestamp into date components.
    toDateStruct :: d -> DateStruct
 
-class Date dt => DateTime dt where
+class Time t where
+
+   -- | Compose a timestamp from time components.
+   fromTimeStruct :: TimeStruct -> t
+
+   -- | Decompose a timestamp into time components.
+   toTimeStruct :: t -> TimeStruct
+
+class Zone x where
+
+   -- | Change the time zone of a timestamp.
+   toTimeZone :: x -> TZ.TimeZone -> x
+
+class (Date dt, Time dt) => DateTime dt where
 
    -- | Compose a timestamp from date and time components.
    fromDateTimeStruct :: DateTimeStruct -> dt
@@ -82,13 +99,21 @@ class Date dt => DateTime dt where
    -- | Decompose a timestamp into date and time components.
    toDateTimeStruct :: dt -> DateTimeStruct
 
-class DateZone dz where
+class Zone dz => DateZone dz where
 
    -- | Compose a timestamp from date and time zone components.
    fromDateZoneStruct :: DateZoneStruct -> dz
 
    -- | Decompose a timestamp into date and time zone components.
    toDateZoneStruct :: dz -> DateZoneStruct
+
+class Zone tz => TimeZone tz where
+
+   -- | Compose a timestamp from time and time zone components.
+   fromTimeZoneStruct :: TimeZoneStruct -> tz
+
+   -- | Decompose a timestamp into time and time zone components.
+   toTimeZoneStruct :: tz -> TimeZoneStruct
 
 class DateZone dtz => DateTimeZone dtz where
 
@@ -108,38 +133,48 @@ class DateTimeMath x c where
    -- | Add a timestamp with a date or time component.
    plus :: x -> c -> x
 
-class Zone x where
-
-   -- | Change the time zone of a timestamp.
-   rezone :: x -> TimeZone -> x
-
 -- | A struct with date components.
 data DateStruct = DateStruct {
-     _d_year :: {-# UNPACK #-} !Year
-   , _d_mon  ::                !Month
-   , _d_mday :: {-# UNPACK #-} !Day
-   , _d_wday ::                !DayOfWeek
-   } deriving (Eq,Generic,Ord,Show,Typeable)
+    _d_year :: {-# UNPACK #-} !Year
+  , _d_mon  ::                !Month
+  , _d_mday :: {-# UNPACK #-} !Day
+  , _d_wday ::                !DayOfWeek
+  } deriving (Eq,Generic,Ord,Show,Typeable)
+
+-- | A struct with time components.
+data TimeStruct = TimeStruct {
+    _t_hour :: {-# UNPACK #-} !Hour
+  , _t_min  :: {-# UNPACK #-} !Minute
+  , _t_sec  :: {-# UNPACK #-} !Double
+  } deriving (Eq,Generic,Ord,Show,Typeable)
 
 -- | A struct with date and time components.
 data DateTimeStruct = DateTimeStruct {
-     _dt_year :: {-# UNPACK #-} !Year
-   , _dt_mon  ::                !Month
-   , _dt_mday :: {-# UNPACK #-} !Day
-   , _dt_wday ::                !DayOfWeek
-   , _dt_hour :: {-# UNPACK #-} !Hour
-   , _dt_min  :: {-# UNPACK #-} !Minute
-   , _dt_sec  :: {-# UNPACK #-} !Double
-   } deriving (Eq,Generic,Ord,Show,Typeable)
+    _dt_year :: {-# UNPACK #-} !Year
+  , _dt_mon  ::                !Month
+  , _dt_mday :: {-# UNPACK #-} !Day
+  , _dt_wday ::                !DayOfWeek
+  , _dt_hour :: {-# UNPACK #-} !Hour
+  , _dt_min  :: {-# UNPACK #-} !Minute
+  , _dt_sec  :: {-# UNPACK #-} !Double
+  } deriving (Eq,Generic,Ord,Show,Typeable)
 
 -- | A struct with date and time zone components.
 data DateZoneStruct = DateZoneStruct {
-     _dz_year :: {-# UNPACK #-} !Year
-   , _dz_mon  ::                !Month
-   , _dz_mday :: {-# UNPACK #-} !Day
-   , _dz_wday ::                !DayOfWeek
-   , _dz_zone ::                !TimeZone
-   } deriving (Eq,Generic,Ord,Show,Typeable)
+    _dz_year :: {-# UNPACK #-} !Year
+  , _dz_mon  ::                !Month
+  , _dz_mday :: {-# UNPACK #-} !Day
+  , _dz_wday ::                !DayOfWeek
+  , _dz_zone ::                !TZ.TimeZone
+  } deriving (Eq,Generic,Ord,Show,Typeable)
+
+-- | A struct with time and time zone components.
+data TimeZoneStruct = TimeZoneStruct {
+    _tz_hour :: {-# UNPACK #-} !Hour
+  , _tz_min  :: {-# UNPACK #-} !Minute
+  , _tz_sec  :: {-# UNPACK #-} !Double
+  , _tz_zone ::                !TZ.TimeZone
+  } deriving (Eq,Generic,Ord,Show,Typeable)
 
 -- | A struct with date, time and time zone components.
 data DateTimeZoneStruct = DateTimeZoneStruct {
@@ -150,7 +185,7 @@ data DateTimeZoneStruct = DateTimeZoneStruct {
   , _dtz_hour :: {-# UNPACK #-} !Hour
   , _dtz_min  :: {-# UNPACK #-} !Minute
   , _dtz_sec  :: {-# UNPACK #-} !Double
-  , _dtz_zone ::                !TimeZone
+  , _dtz_zone ::                !TZ.TimeZone
   } deriving (Eq,Generic,Ord,Show,Typeable)
 
 -- | Year.
@@ -301,9 +336,15 @@ yearToMonth month leap =
 -- | Calculate the number of seconds (excluding leap seconds)
 --   that have elapsed between Unix epoch and the given time.
 epochToTime :: Year -> Month -> Day -> Hour -> Minute -> Second -> Second
-epochToTime year month day (Hour hour) (Minute minute) (Second second) =
-  Second $ (days * 86400) + (hour * 3600) + (minute * 60) + second
+epochToTime year month day hour minute second =
+  Second (days * 86400) + midnightToTime hour minute second
   where days = fromIntegral $ epochToDate year month day
+
+-- | Calculate the number of seconds (excluding leap seconds)
+--   that have elapsed between midnight and the given time.
+midnightToTime :: Hour -> Minute -> Second -> Second
+midnightToTime (Hour hour) (Minute minute) (Second second) =
+  Second $ (hour * 3600) + (minute * 60) + second
 
 -- | Check if the given year is a leap year.
 isLeapYear :: Year -> Bool

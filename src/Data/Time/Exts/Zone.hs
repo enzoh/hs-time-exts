@@ -34,12 +34,12 @@ module Data.Time.Exts.Zone (
 
      ) where
 
-import Control.Arrow (first)
-import Data.Aeson (FromJSON, ToJSON)
+import Control.Arrow   (first)
+import Data.Aeson      (FromJSON, ToJSON)
 import Data.Map.Strict (Map, (!), fromDistinctAscList)
-import Data.Typeable (Typeable)
-import GHC.Generics (Generic)
-import System.Random (Random(..))
+import Data.Typeable   (Typeable)
+import GHC.Generics    (Generic)
+import System.Random   (Random(..))
 
 -- | Cities from around the world.
 data City =
