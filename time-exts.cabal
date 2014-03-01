@@ -1,5 +1,5 @@
 Name:               time-exts
-Version:            2.0.0
+Version:            2.1.0
 License:            BSD3
 License-File:       LICENSE
 Copyright:          Copyright (c) 2014, Enzo Haussecker. All rights reserved.
@@ -21,17 +21,21 @@ Library
                     Data.Time.Exts.Base
                     Data.Time.Exts.C
                     Data.Time.Exts.Local
+                    Data.Time.Exts.Parser
                     Data.Time.Exts.Unix
                     Data.Time.Exts.Zone
   Build-Depends:    aeson,
+                    attoparsec,
                     base >= 4 && < 5,
                     bindings-DSL,
                     containers,
                     convertible,
                     deepseq,
                     fclabels,
+                    mtl,
                     QuickCheck,
                     random,
+                    text,
                     time,
                     timezone-olson
   Build-Tools:      hsc2hs
@@ -42,14 +46,17 @@ Executable test-time-exts
   Main-Is:          Data/Time/Exts/Test.hs
   Other-Modules:    Data.Time.Exts.C
   Build-Depends:    aeson,
+                    attoparsec,
                     base >= 4 && < 5,
                     bindings-DSL,
                     containers,
                     convertible,
                     deepseq,
                     fclabels,
+                    mtl,
                     QuickCheck,
                     random,
+                    text,
                     time,
                     timezone-olson
   Build-Tools:      hsc2hs
