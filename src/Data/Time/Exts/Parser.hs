@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeOperators      #-}
 {-# OPTIONS -Wall               #-}
 
--- | Timestamp parsers.
+-- | Timestamp parsers and related utilities.
 module Data.Time.Exts.Parser (
 
  -- ** Parse UTC and Local Timestamps
@@ -20,6 +20,9 @@ module Data.Time.Exts.Parser (
      , parseLocalDateTimeMicros
      , parseLocalDateTimeNanos
      , parseLocalDateTimePicos
+
+ -- ** Exception handling
+     , ParseError(..)
 
      ) where
 
