@@ -21,7 +21,8 @@ module Data.Time.Exts.Parser (
      , parseLocalDateTimeNanos
      , parseLocalDateTimePicos
 
- -- ** Exception handling
+ -- ** Utilities
+     , FormatText
      , ParseError(..)
 
      ) where
