@@ -221,10 +221,13 @@ createParser x =
   <|> matchSet "%b" dtz_mon   parseMonthShort
   <|> matchSet "%d" dtz_mday (parseFixedInt 2)
   <|> matchSet "%h" dtz_mon   parseMonthShort
-  <|> matchSet "%m" dtz_mon  (parseMonthInt 2)
+  <|> matchSet "%m" dtz_mon   parseMonthInt
   <|> matchMod "%p" dtz_hour  parsePeriodLow
+  <|> matchMDY "%x" dtz_year  dtz_mon dtz_mday
+  <|> matchSet "%y" dtz_year  parseYearShort
   <|> matchSet "%A" dtz_wday  parseWeekLong
   <|> matchSet "%B" dtz_mon   parseMonthLong
+  <|> matchMDY "%D" dtz_year  dtz_mon dtz_mday
   <|> matchYMD "%F" dtz_year  dtz_mon dtz_mday
   <|> matchSet "%H" dtz_hour (parseFixedInt 2)
   <|> matchSet "%M" dtz_min  (parseFixedInt 2)
@@ -240,7 +243,7 @@ matchLit :: Parser (Parser (Either ParseError (State DateTimeZoneStruct ())))
 matchLit = string "%%" *> return (char '%' *> return (return (return ())))
 
 -- | Match a percent code and update the field
---   state with the value returned by the parser.
+--   with the value returned by the parser.
 matchSet 
   :: Text
   -> (DateTimeZoneStruct :-> a)
@@ -249,8 +252,8 @@ matchSet
 matchSet code field parser =
   string code *> return (puts field <$$> parser)
 
--- | Match a year-month-day percent code and update the
---   field states with the values returned by the parser.
+-- | Match a year-month-day percent code and update
+--   the fields with the values returned by the parser.
 matchYMD
   :: Text
   -> (DateTimeZoneStruct :-> Year )
@@ -262,13 +265,31 @@ matchYMD code year mon day = string code *> return (fields <$$> parser)
         parser = do
           y <- parseFixedInt 4
           _ <- char '-'
-          m <- parseMonthInt 2
+          m <- parseMonthInt
           _ <- char '-'
           d <- parseFixedInt 2
           return $! liftM3 (,,) y m d
 
+-- | Match a month-day-year percent code and update
+--   the fields with the values returned by the parser.
+matchMDY
+  :: Text
+  -> (DateTimeZoneStruct :-> Year )
+  -> (DateTimeZoneStruct :-> Month)
+  -> (DateTimeZoneStruct :-> Day  )
+  -> Parser (Parser (Either ParseError (State DateTimeZoneStruct ())))
+matchMDY code year mon day = string code *> return (fields <$$> parser)
+  where fields (m,d,y) = puts mon m *> puts day d *> puts year y
+        parser = do
+          m <- parseMonthInt
+          _ <- char '/'
+          d <- parseFixedInt 2
+          _ <- char '/'
+          y <- parseYearShort
+          return $! liftM3 (,,) m d y
+
 -- | Match a hour-minute-second percent code and update
---   the field states with the values returned by the parser.
+--   the fields with the values returned by the parser.
 matchHMS
   :: Text
   -> (DateTimeZoneStruct :-> Hour  )
@@ -286,7 +307,7 @@ matchHMS code hour mn sec = string code *> return (fields <$$> parser)
           return $! liftM3 (,,) h m s
 
 -- | Match a percent code and modify the field
---   state with the function returned by the parser.
+--   with the function returned by the parser.
 matchMod
   :: Text
   -> (DateTimeZoneStruct :-> a)
@@ -303,7 +324,7 @@ matchAny  = takeWhile1 (/='%') >>= return . \ text -> const (return ()) <$$> do
   return $! if src == trg
     then Right src
     else let msg = "matchAny: " ++ show src ++ " not equal to " ++ show trg
-         in  Left $ ParseError msg
+         in Left $ ParseError msg
 
 -- | Parse an integer with fixed length.
 parseFixedInt :: Integral a => Int -> Parser (Either ParseError a)
@@ -314,78 +335,73 @@ parseFixedInt n = do
     else Right . fromIntegral $ T.foldl s2n 0 text
     where s2n a b = a * 10 + fromEnum b - 48
 
+-- | Parse a year in two digit format.
+parseYearShort :: Parser (Either ParseError Year)
+parseYearShort = fun <$$> parseFixedInt 2
+  where fun yr = if yr <= 69 then 2000 + yr else 1900 + yr
+
 -- | Parse a month in integer format with fixed length.
-parseMonthInt :: Int -> Parser (Either ParseError Month)
-parseMonthInt n = cases <$> parseFixedInt n where
-  cases = \ case
-    Right v | 1 <= v && v <= 12 -> Right $ toEnum (v-1)
-    Right v -> Left . ParseError $ "parseMonthInt: " ++ show v
+parseMonthInt :: Parser (Either ParseError Month)
+parseMonthInt = match <$> parseFixedInt 2 where
+  match = \ case
+    Right n | 1 <= n && n <= 12 -> Right $ toEnum (n-1)
+    Right n -> Left . ParseError $ "parseMonthInt: " ++ show n
     Left  e -> Left e
 
 -- | Parse a month in short text format.
 parseMonthShort :: Parser (Either ParseError Month)
-parseMonthShort = parseText list <|> left
-  where left = return (Left $ ParseError "parseMonthShort: not enough input")
-        list = [("Jan", January),("Feb", February),("Mar", March    )
-               ,("Apr", April  ),("May", May     ),("Jun", June     )
-               ,("Jul", July   ),("Aug", August  ),("Sep", September)
-               ,("Oct", October),("Nov", November),("Dec", December )]
+parseMonthShort = parseText text <|> left where
+  left = return (Left $ ParseError "parseMonthShort: not enough input")
+  text = [("Jan", January),("Feb", February),("Mar", March    )
+         ,("Apr", April  ),("May", May     ),("Jun", June     )
+         ,("Jul", July   ),("Aug", August  ),("Sep", September)
+         ,("Oct", October),("Nov", November),("Dec", December )]
 
 -- | Parse a month in long text format.
 parseMonthLong :: Parser (Either ParseError Month)
-parseMonthLong = parseText list <|> left
-  where left = return (Left $ ParseError "parseMonthLong: not enough input")
-        list = [("January", January),("February", February),("March"    , March    )
-               ,("April"  , April  ),("May"     , May     ),("June"     , June     )
-               ,("July"   , July   ),("August"  , August  ),("September", September)
-               ,("October", October),("November", November),("December" , December )]
+parseMonthLong = parseText text <|> left where
+  left = return (Left $ ParseError "parseMonthLong: not enough input")
+  text = [("January", January),("February", February),("March"    , March    )
+         ,("April"  , April  ),("May"     , May     ),("June"     , June     )
+         ,("July"   , July   ),("August"  , August  ),("September", September)
+         ,("October", October),("November", November),("December" , December )]
 
 -- | Parse a day of week in short text form. 
 parseWeekShort :: Parser (Either ParseError DayOfWeek)
-parseWeekShort = parseText list <|> left
-  where left = return (Left $ ParseError "parseWeekShort: not enough input")
-        list = [("Sun", Sunday   ),("Mon", Monday  ),("Tue", Tuesday)
-               ,("Wed", Wednesday),("Thu", Thursday),("Fri", Friday )
-               ,("Sat", Saturday )]
+parseWeekShort = parseText text <|> left where
+  left = return (Left $ ParseError "parseWeekShort: not enough input")
+  text = [("Sun", Sunday   ),("Mon", Monday  ),("Tue", Tuesday)
+         ,("Wed", Wednesday),("Thu", Thursday),("Fri", Friday )
+         ,("Sat", Saturday )]
 
 -- | Parse a day of week in long text form. 
 parseWeekLong :: Parser (Either ParseError DayOfWeek)
-parseWeekLong = parseText list <|> left
-  where left = return (Left $ ParseError "parseWeekShort: not enough input")
-        list = [("Sunday"   , Sunday   ),("Monday"  , Monday  ),("Tuesday", Tuesday)
-               ,("Wednesday", Wednesday),("Thursday", Thursday),("Friday" , Friday )
-               ,("Saturday" , Saturday )]
+parseWeekLong = parseText text <|> left where
+  left = return (Left $ ParseError "parseWeekShort: not enough input")
+  text = [("Sunday"   , Sunday   ),("Monday"  , Monday  ),("Tuesday", Tuesday)
+         ,("Wednesday", Wednesday),("Thursday", Thursday),("Friday" , Friday )
+         ,("Saturday" , Saturday )]
 
--- | Parse a second with arbitrary precision.
+-- | Parse a second.
 parseSecond :: Parser (Either ParseError Double)
-parseSecond = do
-  text1 <- P.take 2
-  let x = realToFrac $ T.foldl s2n 0 text1
-  if not $ T.all isDigit text1
-  then return $! Left . ParseError $ "parseSecond: " ++ unpack text1
-  else option (Right x) . try $ do
-         _     <- char '.'
-         text2 <- takeWhile1 isDigit
-         let y = realToFrac $ T.foldl s2n 0 text2
-             z = realToFrac $ T.length text2
-         return $! Right $ x + y * 10**(-z)
-         where s2n a b = a * 10 + fromIntegral (fromEnum b) - 48 :: Int
+parseSecond = fun <$$> parseFixedInt 2
+  where fun = realToFrac :: Int -> Double
 
 -- | Parse lowercase am//pm symbols.
 parsePeriodLow :: Parser (Either ParseError (Hour -> Hour))
-parsePeriodLow = period <$> P.take 2
-  where period = \ case
-           "am" -> Right $ \ case 12 -> 00; x -> x
-           "pm" -> Right $ \ case 12 -> 12; x -> x + 12
-           text -> Left  . ParseError $ "parsePeriodLow: " ++ unpack text
+parsePeriodLow = match <$> P.take 2 where
+  match = \ case
+    "am" -> Right $ \ case 12 -> 00; x -> x
+    "pm" -> Right $ \ case 12 -> 12; x -> x + 12
+    text -> Left  . ParseError $ "parsePeriodLow: " ++ unpack text
 
 -- | Parse uppercase AM//PM symbols.
 parsePeriodHigh :: Parser (Either ParseError (Hour -> Hour))
-parsePeriodHigh = period <$> P.take 2
-   where period = \ case
-            "AM" -> Right $ \ case 12 -> 00; x -> x
-            "PM" -> Right $ \ case 12 -> 12; x -> x + 12
-            text -> Left  . ParseError $ "parsePeriodHigh: " ++ unpack text
+parsePeriodHigh = match <$> P.take 2 where
+  match = \ case
+    "AM" -> Right $ \ case 12 -> 00; x -> x
+    "PM" -> Right $ \ case 12 -> 12; x -> x + 12
+    text -> Left  . ParseError $ "parsePeriodHigh: " ++ unpack text
 
 -- | Parse a time zone.
 parseTimeZone :: City -> Parser (Either ParseError TimeZone)
@@ -397,8 +413,8 @@ parseTimeZone city = do
 
 -- | Parse text and match with value.
 parseText :: [(Text, a)] -> Parser (Either ParseError a)
-parseText = L.foldl1 (<|>) . L.map match
-  where match (name, val) = asciiCI name *> return (Right val)
+parseText = L.foldl1 (<|>) . L.map match where
+  match (name, val) = asciiCI name *> return (Right val)
 
 -- | Twice promote a function to a monad.
 (<$$>) :: (Functor f1, Functor f2) => (a -> b) -> f1 (f2 a) -> f1 (f2 b)
