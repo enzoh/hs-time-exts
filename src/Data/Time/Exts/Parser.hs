@@ -179,7 +179,7 @@ parseSecond = do
   text1 <- P.take 2
   let x = realToFrac $ T.foldl s2n 0 text1
   if not $ T.all isDigit text1
-  then return $! Left . ParseError $ "parseFixedDouble: " ++ unpack text1
+  then return $! Left . ParseError $ "parseSecond: " ++ unpack text1
   else option (Right x) . try $ do
          _     <- char '.'
          text2 <- takeWhile1 isDigit
