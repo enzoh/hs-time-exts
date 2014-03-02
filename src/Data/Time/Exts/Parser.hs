@@ -32,6 +32,7 @@ import Control.Exception          (Exception)
 import Control.Monad              (liftM)
 import Control.Monad.State.Strict (execState, State)
 import Data.Attoparsec.Text as P
+import Data.Convertible           (Convertible(..), prettyConvertError)
 import Data.Char                  (isAlpha, isDigit)
 import Data.Label                 ((:->), mkLabels)
 import Data.Label.Monadic         (puts, modify)
@@ -192,8 +193,9 @@ parseSecond = do
 parseTimeZone :: City -> Parser (Either ParseError TimeZone)
 parseTimeZone city = do
   text <- takeWhile1 isAlpha
-  let abbr = TimeZoneAbbr city $ unpack text
-  return $! Right $ unabbreviate abbr -- FIXME: unabbreviate could throw an error...
+  let zone = safeConvert . TimeZoneAbbr city $ unpack text
+  return $! either err Right zone
+  where err = Left . ParseError . prettyConvertError
 
 -- | Parse lowercase am//pm symbols.
 parsePeriodLow :: Parser (Either ParseError (Hour -> Hour))
