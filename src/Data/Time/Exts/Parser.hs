@@ -383,10 +383,20 @@ parseWeekLong = parseText text <|> left where
          ,("Wednesday", Wednesday),("Thursday", Thursday),("Friday" , Friday )
          ,("Saturday" , Saturday )]
 
--- | Parse a second.
+-- | Parse a second with arbitrary precision.
 parseSecond :: Parser (Either ParseError Double)
-parseSecond = fun <$$> parseFixedInt 2
-  where fun = realToFrac :: Int -> Double
+parseSecond = do
+  text1 <- P.take 2
+  let x = realToFrac $ T.foldl s2n 0 text1
+  if not $ T.all isDigit text1
+  then return $! Left . ParseError $ "parseSecond: " ++ unpack text1
+  else option (Right x) . try $ do
+         _ <- char '.'
+         text2 <- takeWhile1 isDigit
+         let y = realToFrac $ T.foldl s2n 0 text2
+             z = realToFrac $ T.length text2
+         return $! Right $ x + y * 10**(-z)
+         where s2n a b = a * 10 + fromIntegral (fromEnum b) - 48 :: Int
 
 -- | Parse lowercase am//pm symbols.
 parsePeriodLow :: Parser (Either ParseError (Hour -> Hour))
