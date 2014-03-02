@@ -234,6 +234,7 @@ createParser x =
   <|> matchMod "%P" dtz_hour  parsePeriodHigh
   <|> matchSet "%S" dtz_sec   parseSecond
   <|> matchHMS "%T" dtz_hour  dtz_min dtz_sec
+  <|> matchHMS "%X" dtz_hour  dtz_min dtz_sec
   <|> matchSet "%Y" dtz_year (parseFixedInt 4)
   <|> matchSet "%Z" dtz_zone (parseTimeZone x)
   <|> matchAny
