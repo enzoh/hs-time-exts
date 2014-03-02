@@ -4,6 +4,7 @@
 
 {-# LANGUAGE DeriveDataTypeable     #-}
 {-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NamedFieldPuns         #-}
 {-# LANGUAGE RecordWildCards        #-}
 {-# OPTIONS -Wall                   #-}
@@ -34,12 +35,13 @@ module Data.Time.Exts.Zone (
 
      ) where
 
-import Control.Arrow   (first)
-import Data.Aeson      (FromJSON, ToJSON)
-import Data.Map.Strict (Map, (!), fromDistinctAscList)
-import Data.Typeable   (Typeable)
-import GHC.Generics    (Generic)
-import System.Random   (Random(..))
+import Control.Arrow    (first)
+import Data.Aeson       (FromJSON, ToJSON)
+import Data.Convertible (convError, convert, Convertible(..))
+import Data.Map.Strict  (Map, (!), fromDistinctAscList)
+import Data.Typeable    (Typeable)
+import GHC.Generics     (Generic)
+import System.Random    (Random(..))
 
 -- | Cities from around the world.
 data City =
@@ -360,6 +362,73 @@ data TimeZoneAbbr = TimeZoneAbbr {
    , abbr_str  :: String -- ^ time zone abbreviation string
    } deriving (Eq,Generic,Typeable)
 
+instance Convertible TimeZoneAbbr TimeZone where
+   safeConvert abbr@TimeZoneAbbr{..} = 
+     case abbr_str of
+       "AFT"  -> Right Afghanistan_Time
+       "AHDT" -> Right Alaska_Hawaii_Daylight_Time
+       "AHST" -> Right Alaska_Hawaii_Standard_Time
+       "AKDT" -> Right Alaska_Daylight_Time
+       "AKST" -> Right Alaska_Standard_Time
+       "ADT"  -> Right Arabia_Daylight_Time
+       "AST"  -> Right Arabia_Standard_Time
+       "BRST" -> Right Brasilia_Summer_Time
+       "BRT"  -> Right Brasilia_Time
+       "BST"  -> Right British_Summer_Time
+       "CAT"  -> Right Central_Africa_Time
+       "CDT"  -> case abbr_city of
+                   Chicago   -> Right Central_Daylight_Time
+                   Shanghai  -> Right China_Daylight_Time
+                   _         -> collision
+       "CEST" -> Right Central_European_Summer_Time
+       "CET"  -> Right Central_European_Time
+       "CST"  -> case abbr_city of
+                   Chicago   -> Right Central_Standard_Time
+                   Shanghai  -> Right China_Standard_Time
+                   _         -> collision
+       "EAT"  -> Right East_Africa_Time
+       "EDT"  -> Right Eastern_Daylight_Time
+       "EEST" -> Right Eastern_European_Summer_Time
+       "EET"  -> Right Eastern_European_Time
+       "EST"  -> Right Eastern_Standard_Time
+       "FET"  -> Right Further_Eastern_European_Time
+       "GMT"  -> Right Greenwich_Mean_Time
+       "GST"  -> Right Gulf_Standard_Time
+       "HST"  -> Right Hawaii_Aleutian_Standard_Time
+       "HKST" -> Right Hong_Kong_Summer_Time
+       "HKT"  -> Right Hong_Kong_Time
+       "IDT"  -> Right Israel_Daylight_Time
+       "IRDT" -> Right Iran_Daylight_Time
+       "IRST" -> Right Iran_Standard_Time
+       "IST"  -> case abbr_city of
+                   Kolkata   -> Right India_Standard_Time
+                   Tel_Aviv  -> Right Israel_Standard_Time
+                   _         -> collision
+       "JST"  -> Right Japan_Standard_Time
+       "KART" -> Right Karachi_Time
+       "KDT"  -> Right Korea_Daylight_Time
+       "KST"  -> Right Korea_Standard_Time
+       "MDT"  -> Right Mountain_Daylight_Time
+       "MSD"  -> Right Moscow_Daylight_Time
+       "MSK"  -> Right Moscow_Standard_Time
+       "MST"  -> Right Mountain_Standard_Time
+       "NZDT" -> Right New_Zealand_Daylight_Time
+       "NZST" -> Right New_Zealand_Standard_Time
+       "PDT"  -> Right Pacific_Daylight_Time
+       "PKST" -> Right Pakistan_Summer_Time
+       "PKT"  -> Right Pakistan_Standard_Time
+       "PST"  -> Right Pacific_Standard_Time
+       "SAST" -> Right South_Africa_Standard_Time
+       "SGT"  -> Right Singapore_Time
+       "UTC"  -> Right Coordinated_Universal_Time
+       "WAT"  -> Right West_Africa_Time
+       "YST"  -> Right Yukon_Standard_Time
+       _      ->         convError "undefined time zone abbreviation string" abbr
+       where collision = convError "reference location collision"            abbr
+
+instance Convertible TimeZone TimeZoneAbbr where
+   safeConvert = Right . (!) abbreviations
+
 instance FromJSON TimeZoneAbbr
 
 instance Show TimeZoneAbbr where
@@ -369,72 +438,11 @@ instance ToJSON TimeZoneAbbr
 
 -- | Abbreviate a time zone.
 abbreviate :: TimeZone -> TimeZoneAbbr
-abbreviate = (!) abbreviations
+abbreviate = convert
 
 -- | Unabbreviate a time zone.
 unabbreviate :: TimeZoneAbbr -> TimeZone
-unabbreviate TimeZoneAbbr{..} =
-   case abbr_str of
-     "AFT"  -> Afghanistan_Time
-     "AHDT" -> Alaska_Hawaii_Daylight_Time
-     "AHST" -> Alaska_Hawaii_Standard_Time
-     "AKDT" -> Alaska_Daylight_Time
-     "AKST" -> Alaska_Standard_Time
-     "ADT"  -> Arabia_Daylight_Time
-     "AST"  -> Arabia_Standard_Time
-     "BRST" -> Brasilia_Summer_Time
-     "BRT"  -> Brasilia_Time
-     "BST"  -> British_Summer_Time
-     "CAT"  -> Central_Africa_Time
-     "CDT"  -> case abbr_city of
-                 Chicago   -> Central_Daylight_Time
-                 Shanghai  -> China_Daylight_Time
-                 _         -> missing abbr_city
-     "CEST" -> Central_European_Summer_Time
-     "CET"  -> Central_European_Time
-     "CST"  -> case abbr_city of
-                 Chicago   -> Central_Standard_Time
-                 Shanghai  -> China_Standard_Time
-                 _         -> missing abbr_city
-     "EAT"  -> East_Africa_Time
-     "EDT"  -> Eastern_Daylight_Time
-     "EEST" -> Eastern_European_Summer_Time
-     "EET"  -> Eastern_European_Time
-     "EST"  -> Eastern_Standard_Time
-     "FET"  -> Further_Eastern_European_Time
-     "GMT"  -> Greenwich_Mean_Time
-     "GST"  -> Gulf_Standard_Time
-     "HST"  -> Hawaii_Aleutian_Standard_Time
-     "HKST" -> Hong_Kong_Summer_Time
-     "HKT"  -> Hong_Kong_Time
-     "IDT"  -> Israel_Daylight_Time
-     "IRDT" -> Iran_Daylight_Time
-     "IRST" -> Iran_Standard_Time
-     "IST"  -> case abbr_city of
-                 Kolkata   -> India_Standard_Time
-                 Tel_Aviv  -> Israel_Standard_Time
-                 _         -> missing abbr_city
-     "JST"  -> Japan_Standard_Time
-     "KART" -> Karachi_Time
-     "KDT"  -> Korea_Daylight_Time
-     "KST"  -> Korea_Standard_Time
-     "MDT"  -> Mountain_Daylight_Time
-     "MSD"  -> Moscow_Daylight_Time
-     "MSK"  -> Moscow_Standard_Time
-     "MST"  -> Mountain_Standard_Time
-     "NZDT" -> New_Zealand_Daylight_Time
-     "NZST" -> New_Zealand_Standard_Time
-     "PDT"  -> Pacific_Daylight_Time
-     "PKST" -> Pakistan_Summer_Time
-     "PKT"  -> Pakistan_Standard_Time
-     "PST"  -> Pacific_Standard_Time
-     "SAST" -> South_Africa_Standard_Time
-     "SGT"  -> Singapore_Time
-     "UTC"  -> Coordinated_Universal_Time
-     "WAT"  -> West_Africa_Time
-     "YST"  -> Yukon_Standard_Time
-     _      ->            error $ "safeConvert: missing time zone abbreviation `" ++ abbr_str  ++ "'"
-     where missing city = error $ "safeConvert: missing reference location `"     ++ show city ++ "'"
+unabbreviate = convert
 
 -- | A map from time zones to time zone abbreviations.
 abbreviations :: Map TimeZone TimeZoneAbbr
