@@ -117,7 +117,7 @@ import Data.Typeable                    (Typeable)
 -- [@%Z@] time zone abbreviation
 type FormatText = Text
 
--- | 
+-- | Error handling type.
 newtype ParseError = ParseError String deriving (Show,Typeable)
 
 instance Exception ParseError
