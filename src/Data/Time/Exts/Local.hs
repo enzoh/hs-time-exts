@@ -261,23 +261,23 @@ instance Bounded LocalDate where
     maxBound = LocalDate 2932896 maxzone
 
 instance Bounded LocalDateTime where
-    minBound = LocalDateTime 43200 0
+    minBound = LocalDateTime 0 0
     maxBound = LocalDateTime 253402257624 maxzone
 
 instance Bounded LocalDateTimeMillis where
-    minBound = LocalDateTimeMillis 43200000 0
+    minBound = LocalDateTimeMillis 0 0
     maxBound = LocalDateTimeMillis 253402257624999 maxzone
 
 instance Bounded LocalDateTimeMicros where
-    minBound = LocalDateTimeMicros 43200000000 0
+    minBound = LocalDateTimeMicros 0 0
     maxBound = LocalDateTimeMicros 253402257624999999 maxzone
 
 instance Bounded LocalDateTimeNanos where
-    minBound = LocalDateTimeNanos 43200000000 0 0
+    minBound = LocalDateTimeNanos 0 0 0
     maxBound = LocalDateTimeNanos 253402257624999999 999 maxzone
 
 instance Bounded LocalDateTimePicos where
-    minBound = LocalDateTimePicos 43200000000 0 0
+    minBound = LocalDateTimePicos 0 0 0
     maxBound = LocalDateTimePicos 253402257624999999 999999 maxzone
 
 instance Local LocalDate where
