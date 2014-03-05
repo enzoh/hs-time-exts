@@ -9,6 +9,7 @@
 
 module Main where
 
+import Control.Monad
 import Data.Convertible
 import Data.Time.Calendar as Calendar
 import Data.Time.Clock
@@ -59,19 +60,19 @@ instance Arbitrary LocalDate where
   arbitrary = choose (minBound, maxBound)
 
 instance Arbitrary LocalDateTime where
-  arbitrary = choose (minBound, maxBound)
+  arbitrary = choose (minBound `plus` Second 43200, maxBound)
 
 instance Arbitrary LocalDateTimeMillis where
-  arbitrary = choose (minBound, maxBound)
+  arbitrary = choose (minBound `plus` Second 43200, maxBound)
 
 instance Arbitrary LocalDateTimeMicros where
-  arbitrary = choose (minBound, maxBound)
+  arbitrary = choose (minBound `plus` Second 43200, maxBound)
 
 instance Arbitrary LocalDateTimeNanos where
-  arbitrary = choose (minBound, maxBound)
+  arbitrary = choose (minBound `plus` Second 43200, maxBound)
 
 instance Arbitrary LocalDateTimePicos where
-  arbitrary = choose (minBound, maxBound)
+  arbitrary = choose (minBound `plus` Second 43200, maxBound)
 
 -- | Test Unix date and time component equality.
 test1 :: (Bounded x, DateTime x, Duration x Second, Show x, Unix x)  => x -> Bool
@@ -143,7 +144,7 @@ test8 x | x == fromTimeStruct (toTimeStruct x) = True
 
 -- | Test properties.
 main :: IO ()
-main = do
+main = replicateM_ 100 $ do
   quickCheck (test1 :: UnixDateTime        -> Bool)
   quickCheck (test1 :: UnixDateTimeMillis  -> Bool)
   quickCheck (test1 :: UnixDateTimeMicros  -> Bool)
