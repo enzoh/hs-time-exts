@@ -28,11 +28,10 @@ module Data.Time.Exts.Parser (
      , parseUnixDateTime
      , parseUnixDateTimeMillis
      , parseUnixDateTimeMicros
-{-
      , parseUnixDateTimeNanos
      , parseUnixDateTimePicos
--}
- -- ** Parse Unix Timestamps With Locale
+
+ -- ** Parse Unix Timestamps Using Locale
      , parseUnixDate'
      , parseUnixTime'
      , parseUnixTimeMillis'
@@ -42,21 +41,22 @@ module Data.Time.Exts.Parser (
      , parseUnixDateTime'
      , parseUnixDateTimeMillis'
      , parseUnixDateTimeMicros'
-{-
      , parseUnixDateTimeNanos'
      , parseUnixDateTimePicos'
 
  -- ** Parse UTC and Local Timestamps
      , parseLocalDate
      , parseLocalDateTime
+{-
      , parseLocalDateTimeMillis
      , parseLocalDateTimeMicros
      , parseLocalDateTimeNanos
      , parseLocalDateTimePicos
-
- -- ** Parse UTC and Local Timestamps With Locale
+-}
+ -- ** Parse UTC and Local Timestamps Using Locale
      , parseLocalDate'
      , parseLocalDateTime'
+{-
      , parseLocalDateTimeMillis'
      , parseLocalDateTimeMicros'
      , parseLocalDateTimeNanos'
@@ -172,14 +172,14 @@ mkLabels [''TZ]
 parseUnixDate :: FormatText -> Text -> Either ParseError UnixDate
 parseUnixDate = parseUnixDate' def
 
--- | Same as @parseUnixDate@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixDate@, except takes an additional locale parameter.
 --
 -- > >>> let german = defaultTimeLocale { wDays = [("Sonntag","So"),("Montag","Mo")...
 -- > >>> parseUnixDate' german "%A, %B %e, %Y" "Dienstag, März  4, 2014"
 -- > Right 2014-03-04
 --
 parseUnixDate' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDate
-parseUnixDate' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixDate' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixDate _set_year _set_mon _set_mday
 
 -- | Parse a Unix time.
@@ -190,14 +190,14 @@ parseUnixDate' locale format text = fun <$> parseTZ locale Universal format text
 parseUnixTime :: FormatText -> Text -> Either ParseError UnixTime
 parseUnixTime = parseUnixTime' def
 
--- | Same as @parseUnixTime@, except takes 'TimeLocale' as an additional parameter. 
+-- | Same as @parseUnixTime@, except takes an additional locale parameter. 
 --
--- > >>> let albanian = defaultTimeLocale { wDays = [("e diel","Die"),("e hënë ","Hën")..
+-- > >>> let albanian = defaultTimeLocale { wDays = [("e diel","Die"),("e hënë ","Hën")...
 -- > >>> parseUnixTime' albanian "%l:%M:%S %p" "12:28:47 PD"
 -- > Right 00:28:47
 --
 parseUnixTime' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTime
-parseUnixTime' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixTime' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixTime hour _set_min sec
           where hour = _set_ampm _set_hour
                 sec  = truncate _set_sec
@@ -210,14 +210,14 @@ parseUnixTime' locale format text = fun <$> parseTZ locale Universal format text
 parseUnixTimeMillis :: FormatText -> Text -> Either ParseError UnixTimeMillis
 parseUnixTimeMillis = parseUnixTimeMillis' def
 
--- | Same as @parseUnixTimeMillis@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixTimeMillis@, except takes an additional locale parameter.
 --
 -- > >>> let urdu = defaultTimeLocale { wDays = [("پير","پير"),("اتوار","اتوار")...
 -- > >>> parseUnixTimeMillis' urdu "%l:%M:%S.%Q %p" " 3:12:47.624 ش"
 -- > Right 15:12:47.624
 --
 parseUnixTimeMillis' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeMillis
-parseUnixTimeMillis' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixTimeMillis' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixTimeMillis hour _set_min sec mil
           where hour = _set_ampm _set_hour
                 (,) sec mil = properFracMillis $ _set_frac _set_sec
@@ -230,14 +230,14 @@ parseUnixTimeMillis' locale format text = fun <$> parseTZ locale Universal forma
 parseUnixTimeMicros :: FormatText -> Text -> Either ParseError UnixTimeMicros
 parseUnixTimeMicros = parseUnixTimeMicros' def
 
--- | Same as @parseUnixTimeMicros@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixTimeMicros@, except takes an additional locale parameter.
 --
 -- > >>> let chinese = defaultTimeLocale { wDays = [("星期日","日"),("星期一","一")...
 -- > >>> parseUnixTimeMicros' chinese "%p%I:%M:%S.%Q" "下午11:46:18.130561"
 -- > Right 23:46:18.130561
 --
 parseUnixTimeMicros' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeMicros
-parseUnixTimeMicros' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixTimeMicros' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixTimeMicros hour _set_min sec mic
           where hour = _set_ampm _set_hour
                 (,) sec mic = properFracMicros $ _set_frac _set_sec
@@ -250,34 +250,34 @@ parseUnixTimeMicros' locale format text = fun <$> parseTZ locale Universal forma
 parseUnixTimeNanos :: FormatText -> Text -> Either ParseError UnixTimeNanos
 parseUnixTimeNanos = parseUnixTimeNanos' def
 
--- | Same as @parseUnixTimeNanos@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixTimeNanos@, except takes an additional locale parameter.
 --
 -- > >>> let swahili = defaultTimeLocale { wDays = [("Jumapili","J2"),("Jumatatu","J3")...
 -- > >>> parseUnixTimeNanos' swahili "%H:%M:%S.%Q %p" "12:05:50.547621324 asubuhi"
 -- > Right 00:05:50.547621324
 --
 parseUnixTimeNanos' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeNanos
-parseUnixTimeNanos' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixTimeNanos' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixTimeNanos hour _set_min sec nan
           where hour = _set_ampm _set_hour
                 (,) sec nan = properFracNanos $ _set_frac _set_sec
 
 -- | Parse a Unix time with picosecond granularity.
 --
--- > >>> parseUnixTimePicos "%T.%QZ" "13:09:23.247795919586Z"
+-- > >>> parseUnixTimePicos "%T.%Q" "13:09:23.247795919586"
 -- > Right 13:09:23.247795919586
 --
 parseUnixTimePicos :: FormatText -> Text -> Either ParseError UnixTimePicos
 parseUnixTimePicos = parseUnixTimePicos' def
 
--- | Same as @parseUnixTimePicos@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixTimePicos@, except takes an additional locale parameter.
 --
 -- > >>> let japanese = defaultTimeLocale { wDays = [("日曜日","日"),("月曜日","月")...
 -- > >>> parseUnixTimePicos' japanese "%I:%M:%S.%Q %p" "04:20:15.340563315063 午前"
 -- > Right 04:20:15.340563315063
 --
 parseUnixTimePicos' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimePicos
-parseUnixTimePicos' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixTimePicos' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixTimePicos hour _set_min sec pic
           where hour = _set_ampm _set_hour
                 (,) sec pic = properFracPicos $ _set_frac _set_sec
@@ -290,14 +290,14 @@ parseUnixTimePicos' locale format text = fun <$> parseTZ locale Universal format
 parseUnixDateTime :: FormatText -> Text -> Either ParseError UnixDateTime
 parseUnixDateTime = parseUnixDateTime' def
 
--- | Same as @parseUnixDateTime@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixDateTime@, except takes an additional locale parameter.
 --
 -- > >>> let somali = defaultTimeLocale { wDays = [("Axad","Axa"),("Isniin","Isn")...
 -- > >>> parseUnixDateTime' somali "%A, %B %e, %r %Y" "Salaaso, Bisha Saddexaad 11, 03:41:33 galabnimo 2014"
 -- > Right 2014-03-11 15:41:33
 --
 parseUnixDateTime' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTime
-parseUnixDateTime' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixDateTime' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixDateTime _set_year _set_mon _set_mday hour _set_min sec
           where hour = _set_ampm _set_hour
                 sec  = truncate _set_sec
@@ -310,14 +310,14 @@ parseUnixDateTime' locale format text = fun <$> parseTZ locale Universal format 
 parseUnixDateTimeMillis :: FormatText -> Text -> Either ParseError UnixDateTimeMillis
 parseUnixDateTimeMillis = parseUnixDateTimeMillis' def
 
--- | Same as @parseUnixDateTimeMillis@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixDateTimeMillis@, except takes an additional locale parameter.
 --
 -- > >>> let turkish = defaultTimeLocale { wDays = [("Pazar","Paz"),("Pazartesi","Pzt")...
 -- > >>> parseUnixDateTimeMillis' turkish "%a %B %e %I:%M:%S.%Q %p %Y" "Prş Mart 13 07:22:54.324 ÖS 2014"
 -- > Right 2014-03-13 19:22:54.324
 --
 parseUnixDateTimeMillis' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeMillis
-parseUnixDateTimeMillis' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixDateTimeMillis' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixDateTimeMillis _set_year _set_mon _set_mday hour _set_min sec mil
           where hour = _set_ampm _set_hour
                 (,) sec mil = properFracMillis $ _set_frac _set_sec
@@ -330,58 +330,97 @@ parseUnixDateTimeMillis' locale format text = fun <$> parseTZ locale Universal f
 parseUnixDateTimeMicros :: FormatText -> Text -> Either ParseError UnixDateTimeMicros
 parseUnixDateTimeMicros = parseUnixDateTimeMicros' def
 
--- | Same as @parseUnixDateTimeMicros@, except takes 'TimeLocale' as an additional parameter.
+-- | Same as @parseUnixDateTimeMicros@, except takes an additional locale parameter.
 --
--- > >>> 
--- > >>> 
--- > 
+-- > >>> let angika = defaultTimeLocale { wDays = [("रविवार","रवि"),("सोमवार","सोम")...
+-- > >>> parseUnixDateTimeMicros' angika "%A %d %B %Y %I:%M:%S.%Q %p" "शुक्रवार 07 मार्च 2014 07:10:50.283025 अपराह्न"
+-- > Right 2014-03-07 19:10:50.283025
 --
 parseUnixDateTimeMicros' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeMicros
-parseUnixDateTimeMicros' locale format text = fun <$> parseTZ locale Universal format text
+parseUnixDateTimeMicros' locale format text = fun <$> parseTimestamp locale Universal format text
   where fun TZ{..} = createUnixDateTimeMicros _set_year _set_mon _set_mday hour _set_min sec mic
           where hour = _set_ampm _set_hour
                 (,) sec mic = properFracMicros $ _set_frac _set_sec
 
-{-
-
 -- | Parse a Unix date and time with nanosecond granularity.
 --
--- > >>> parseUnixDateTimeNanos "%d.%m.%Y %T%Q" "18.03.2014 19:06:43.774295132"
+-- > >>> parseUnixDateTimeNanos "%d.%m.%Y %I:%M:%S.%Q %p" "18.03.2014 07:06:43.774295132 PM"
 -- > Right 2014-03-18 19:06:43.774295132
 --
-parseUnixDateTimeNanos :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeNanos
-parseUnixDateTimeNanos locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, nan) = properFracNanos _dtz_sec
-          in createUnixDateTimeNanos _dtz_year _dtz_mon _dtz_mday _dtz_hour _dtz_min sec nan
+parseUnixDateTimeNanos :: FormatText -> Text -> Either ParseError UnixDateTimeNanos
+parseUnixDateTimeNanos = parseUnixDateTimeNanos' def
+
+-- | Same as @parseUnixDateTimeNanos@, except takes an additional locale parameter.
+--
+-- > >>> let russian = defaultTimeLocale { wDays = [("Воскресенье","Вс"),("Понедельник","Пн")...
+-- > >>> parseUnixDateTimeNanos' russian "%a %d %b %Y %T.%Q" "Ср 11 дек 2013 22:17:42.146648836"
+-- > Right 2013-12-11 22:17:42.146648836
+--
+parseUnixDateTimeNanos' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeNanos
+parseUnixDateTimeNanos' locale format text = fun <$> parseTimestamp locale Universal format text
+  where fun TZ{..} = createUnixDateTimeNanos _set_year _set_mon _set_mday hour _set_min sec nan
+          where hour = _set_ampm _set_hour
+                (,) sec nan = properFracNanos $ _set_frac _set_sec
 
 -- | Parse a Unix date and time with picosecond granularity.
 --
--- > >>> parseUnixDateTimePicos "%FT%T%QZ" "2014-03-03T17:58:15.916795765305Z"
+-- > >>> parseUnixDateTimePicos "%FT%T.%QZ" "2014-03-03T17:58:15.916795765305Z"
 -- > Right 2014-03-03 17:58:15.916795765305
 --
-parseUnixDateTimePicos :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimePicos
-parseUnixDateTimePicos locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, pic) = properFracPicos _dtz_sec
-          in createUnixDateTimePicos _dtz_year _dtz_mon _dtz_mday _dtz_hour _dtz_min sec pic
+parseUnixDateTimePicos :: FormatText -> Text -> Either ParseError UnixDateTimePicos
+parseUnixDateTimePicos = parseUnixDateTimePicos' def
+
+-- | Same as @parseUnixDateTimePicos@, except takes an additional locale parameter.
+--
+-- > >>> let norwegian = defaultTimeLocale { wDays = [("søndag","sø."),("mandag","ma.")...
+-- > >>> parseUnixDateTimePicos' norwegian "%a %d. %b %Y kl. %H.%M.%S.%Q"  "fr. 07. mars 2014 kl. 21.11.55.837472109433"
+-- > Right 2014-03-07 21:11:55.837472109433
+--
+parseUnixDateTimePicos' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimePicos
+parseUnixDateTimePicos' locale format text = fun <$> parseTimestamp locale Universal format text
+  where fun TZ{..} = createUnixDateTimePicos _set_year _set_mon _set_mday hour _set_min sec pic
+          where hour = _set_ampm _set_hour
+                (,) sec pic = properFracPicos $ _set_frac _set_sec
 
 -- | Parse a local date.
 --
--- > >>> parseLocalDate Los_Angeles "%A, %B %e, %Y (%Z)" "Monday, March 17, 2014 (PST)"
+-- > >>> parseLocalDate "%A, %B %e, %Y (%Z)" "Monday, March 17, 2014 (PST)"
 -- > Right 2014-03-17 PST
 --
-parseLocalDate :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDate
-parseLocalDate locale city format text = fun <$> parseDateTimeZoneStruct locale city format text
-  where fun DateTimeZoneStruct{..} = createLocalDate _dtz_year _dtz_mon _dtz_mday _dtz_zone
+parseLocalDate :: FormatText -> Text -> Either ParseError LocalDate
+parseLocalDate = parseLocalDate' def Universal
+
+-- | Same as @parseLocalDate@, except takes an additional locale and city parameter.
+--
+-- > >>> parseLocalDate' defaultTimeLocale Kolkata "%A, %B %e, %Y (%Z)" "Monday, March 17, 2014 (IST)"
+-- > Right 2014-03-17 IST
+--
+--   Note that the city parameter is required to distinguish between the India and Israel.
+parseLocalDate' :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDate
+parseLocalDate' locale city format text = fun <$> parseTimestamp locale city format text
+  where fun TZ{..} = createLocalDate _set_year _set_mon _set_mday _set_zone
 
 -- | Parse a local date and time.
 --
--- > >>> parseLocalDateTime New_York "%a %b %e %H:%M:%S %Z %Y" "Fri Mar 14 09:29:53 EST 2014"
+-- > >>> parseLocalDateTime "%a %b %e %H:%M:%S %Z %Y" "Fri Mar 14 09:29:53 EST 2014"
 -- > Right 2014-03-14 09:29:53 EST
 --
-parseLocalDateTime :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTime
-parseLocalDateTime locale city format text = fromDateTimeZoneStruct <$> parseDateTimeZoneStruct locale city format text
+parseLocalDateTime :: FormatText -> Text -> Either ParseError LocalDateTime
+parseLocalDateTime = parseLocalDateTime' def Universal
+
+-- | Same as @parseLocalDateTime@, except takes an additional locale and city parameter.
+--
+-- > >>> let french = defaultTimeLocale { wDays = [("dimanche","dim."),("lundi","lun.")...
+-- > >>> parseLocalDateTime' french Paris "%a %d %b %T %Z %Y" "ven. 07 mars 22:49:03 UTC 2014"
+-- > Right 2014-03-07 22:49:03 UTC
+--
+parseLocalDateTime' :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTime
+parseLocalDateTime' locale city format text = fun <$> parseTimestamp locale city format text
+  where fun TZ{..} = createLocalDateTime _set_year _set_mon _set_mday hour _set_min sec _set_zone
+          where hour = _set_ampm _set_hour
+                sec  = truncate _set_sec
+
+{-
 
 -- | Parse a local date and time with millisecond granularity.
 --
@@ -423,13 +462,13 @@ initTZ :: TZ
 initTZ =  TZ 1970 January 1 Thursday 0 0 0.0 id id utc
 
 -- | Parse timestamp components.
-parseTZ
+parseTimestamp
   :: TimeLocale
   -> City
   -> FormatText
   -> Text
   -> Either ParseError TZ
-parseTZ locale city format text =
+parseTimestamp locale city format text =
   either left Right $ do
     parser <- parseFormat locale city format
     parseOnly parser text
