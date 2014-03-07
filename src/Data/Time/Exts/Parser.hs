@@ -31,7 +31,16 @@ module Data.Time.Exts.Parser (
      , parseUnixDateTimeNanos
      , parseUnixDateTimePicos
 
- -- ** Parse Unix Timestamps Using Locale
+ -- ** Parse UTC and Local Timestamps
+     , parseLocalDate
+     , parseLocalDateTime
+{-
+     , parseLocalDateTimeMillis
+     , parseLocalDateTimeMicros
+     , parseLocalDateTimeNanos
+     , parseLocalDateTimePicos
+-}
+ -- ** Parse Unix Timestamps With Parameters
      , parseUnixDate'
      , parseUnixTime'
      , parseUnixTimeMillis'
@@ -44,16 +53,7 @@ module Data.Time.Exts.Parser (
      , parseUnixDateTimeNanos'
      , parseUnixDateTimePicos'
 
- -- ** Parse UTC and Local Timestamps
-     , parseLocalDate
-     , parseLocalDateTime
-{-
-     , parseLocalDateTimeMillis
-     , parseLocalDateTimeMicros
-     , parseLocalDateTimeNanos
-     , parseLocalDateTimePicos
--}
- -- ** Parse UTC and Local Timestamps Using Locale
+ -- ** Parse UTC and Local Timestamps With Parameters
      , parseLocalDate'
      , parseLocalDateTime'
 {-
