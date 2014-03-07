@@ -8,6 +8,7 @@
 {-# LANGUAGE RecordWildCards    #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE UnicodeSyntax      #-}
 {-# OPTIONS -Wall               #-}
 
 -- | Timestamp parsers and related utilities.
@@ -27,8 +28,23 @@ module Data.Time.Exts.Parser (
      , parseUnixDateTime
      , parseUnixDateTimeMillis
      , parseUnixDateTimeMicros
+{-
      , parseUnixDateTimeNanos
      , parseUnixDateTimePicos
+-}
+ -- ** Parse Unix Timestamps With Locale
+     , parseUnixDate'
+     , parseUnixTime'
+     , parseUnixTimeMillis'
+     , parseUnixTimeMicros'
+     , parseUnixTimeNanos'
+     , parseUnixTimePicos'
+     , parseUnixDateTime'
+     , parseUnixDateTimeMillis'
+     , parseUnixDateTimeMicros'
+{-
+     , parseUnixDateTimeNanos'
+     , parseUnixDateTimePicos'
 
  -- ** Parse UTC and Local Timestamps
      , parseLocalDate
@@ -38,6 +54,14 @@ module Data.Time.Exts.Parser (
      , parseLocalDateTimeNanos
      , parseLocalDateTimePicos
 
+ -- ** Parse UTC and Local Timestamps With Locale
+     , parseLocalDate'
+     , parseLocalDateTime'
+     , parseLocalDateTimeMillis'
+     , parseLocalDateTimeMicros'
+     , parseLocalDateTimeNanos'
+     , parseLocalDateTimePicos'
+-}
      ) where
 
 import Control.Applicative              ((<|>), (<$>), (*>))
@@ -48,6 +72,7 @@ import Control.Monad.State.Strict       (execState, State)
 import Data.Attoparsec.Text as P hiding (decimal)
 import Data.Convertible                 (Convertible(..), prettyConvertError)
 import Data.Char                        (isAlpha)
+import Data.Default                     (def)
 import Data.Label                       ((:->), mkLabels)
 import Data.Label.Monadic               (puts, modify)
 import Data.List as L                   (foldl', foldl1, map, zip)
@@ -63,59 +88,55 @@ import System.Locale                    (TimeLocale(..))
 -- | The format string is composed of various %-codes, each
 --   representing time-related information described below.
 --
--- [@%%@] % literal
+-- [@%%@] A literal '%' character.
 --
--- [@%A@] day of week, long form, case-insensitive, Sunday - Saturday
+-- [@%A@] The full weekday name according to the current locale.
 --
--- [@%a@] day of week, short form, case-insensitive, Sun - Sat
+-- [@%a@] The abbreviated weekday name according to the current locale.
 --
--- [@%B@] month of year, long form, case-insensitive, January - December
+-- [@%B@] The full month name according to the current locale.
 --
--- [@%b@] month of year, short form, case-insensitive, Jan - Dec
+-- [@%b@] The abbreviated month name according to the current locale.
 --
--- [@%D@] same as %m\/%d\/%y
+-- [@%D@] Equivalent to %m\/%d\/%y.
 --
--- [@%d@] day of month, 0-padded to two digits, 01 - 31
+-- [@%d@] The day of the month as a decimal number (range 01 to 31).
 --
--- [@%e@] day of month, space-padded to two digits, 1 - 31
+-- [@%e@] Like %d, the day of the month as a decimal number, but a leading zero is replaced by a space.
 --
--- [@%F@] same as %Y-%m-%d
+-- [@%F@] Equivalent to %Y-%m-%d (the ISO 8601 date format).
 --
--- [@%H@] hour of day (24-hour), 0-padded to two digits, 00 - 23
+-- [@%H@] The hour as a decimal number using a 24-hour clock (range 00 to 23).
 --
--- [@%h@] month of year, short form, case-insensitive, Jan - Dec
+-- [@%h@] Equivalent to %b.
 --
--- [@%I@] hour of day (12-hour), 0-padded to two digits, 01 - 12
+-- [@%I@] The hour as a decimal number using a 12-hour clock (range 01 to 12).
 --
--- [@%l@] hour of day (12-hour), pace-padded to two digits, 1 - 12
+-- [@%l@] Like %I, the hour as a decimal number using a 12-hour clock, but a leading zero is replaced by a space.
 --
--- [@%M@] minute of hour, 0-padded to two digits, 00 - 59
+-- [@%M@] The minute as a decimal number (range 00 to 59).
 --
--- [@%m@] month of year, 0-padded to two digits, 01 - 12
+-- [@%m@] The month as a decimal number (range 01 to 12).
 --
--- [@%P@] period of day, case-insensitive, am, pm
+-- [@%P@] Like %p, the period of the day according to the current locale, but lowercase.
 --
--- [@%p@] period of day, case-insensitive, AM, PM
+-- [@%p@] The period of the day according to the current locale.
 --
--- [@%Q@] fraction of second, decimal point followed by zero to twelve digits, . - .999999999999
+-- [@%Q@] The fraction of the second as a decimal number (range 0 to 999999999999).
 --
--- [@%R@] same as %H:%M
+-- [@%R@] Equivalent to %H:%M.
 --
--- [@%r@] same as %I:%M:%S %p
+-- [@%r@] Equivalent to %I:%M:%S %p.
 --
--- [@%S@] second of minute, 0-padded to two digits, 00 - 60
+-- [@%S@] The second as a decimal number (range 00 to 60).
 --
--- [@%T@] same as %H:%M:%S
+-- [@%T@] Equivalent to %H:%M:%S.
 --
--- [@%X@] same as %H:%M:%S
+-- [@%Y@] The year as a decimal number (range 1970 to 9999).
 --
--- [@%x@] same as %m\/%d\/%y
+-- [@%y@] The year as a decimal number without a century (range 00 to 99). 
 --
--- [@%Y@] year of century, four digits, 1970 - 9999
---
--- [@%y@] year of century, 0-padded to two digits, 00 - 99
---
--- [@%Z@] time zone abbreviation
+-- [@%Z@] The timezone abbreviation. 
 type FormatText = Text
 
 -- | Error handling type.
@@ -126,102 +147,202 @@ instance Exception ParseError
 instance IsString ParseError where
   fromString = ParseError
 
-mkLabels [''DateTimeZoneStruct]
+-- | A struct with date, time, and time zone
+--   components, plus component modifiers.
+data TZ = TZ {
+    _set_year :: Year
+  , _set_mon  :: Month
+  , _set_mday :: Day
+  , _set_wday :: DayOfWeek
+  , _set_hour :: Hour
+  , _set_min  :: Minute
+  , _set_sec  :: Double
+  , _set_frac :: Double -> Double
+  , _set_ampm :: Hour   -> Hour
+  , _set_zone :: TimeZone
+  }
+
+mkLabels [''TZ]
 
 -- | Parse a Unix date.
 --
--- > >>> parseUnixDate "%A, %B %e, %Y" "Tuesday, March 4, 2014"
+-- > >>> parseUnixDate "%A, %B %e, %Y" "Tuesday, March  4, 2014"
 -- > Right 2014-03-04
 --
-parseUnixDate :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDate
-parseUnixDate locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} = createUnixDate _dtz_year _dtz_mon _dtz_mday
+parseUnixDate :: FormatText -> Text -> Either ParseError UnixDate
+parseUnixDate = parseUnixDate' def
+
+-- | Same as @parseUnixDate@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> let german = defaultTimeLocale { wDays = [("Sonntag","So"),("Montag","Mo")...
+-- > >>> parseUnixDate' german "%A, %B %e, %Y" "Dienstag, März  4, 2014"
+-- > Right 2014-03-04
+--
+parseUnixDate' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDate
+parseUnixDate' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixDate _set_year _set_mon _set_mday
 
 -- | Parse a Unix time.
 --
--- > >>> parseUnixTime "%l:%M %p" "2:28 PM"
--- > Right 14:28:00
+-- > >>> parseUnixTime "%T" "15:32:19"
+-- > Right 15:32:19
 --
-parseUnixTime :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTime
-parseUnixTime locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} = createUnixTime _dtz_hour _dtz_min $ truncate _dtz_sec
+parseUnixTime :: FormatText -> Text -> Either ParseError UnixTime
+parseUnixTime = parseUnixTime' def
+
+-- | Same as @parseUnixTime@, except takes 'TimeLocale' as an additional parameter. 
+--
+-- > >>> let albanian = defaultTimeLocale { wDays = [("e diel","Die"),("e hënë ","Hën")..
+-- > >>> parseUnixTime' albanian "%l:%M:%S %p" "12:28:47 PD"
+-- > Right 00:28:47
+--
+parseUnixTime' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTime
+parseUnixTime' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixTime hour _set_min sec
+          where hour = _set_ampm _set_hour
+                sec  = truncate _set_sec
 
 -- | Parse a Unix time with millisecond granularity.
 --
--- > >>> parseUnixTimeMillis "%I:%M:%S%Q %p" "09:41:09.313 PM"
+-- > >>> parseUnixTimeMillis "%I:%M:%S.%Q %p" "09:41:09.313 PM"
 -- > Right 21:41:09.313
 --
-parseUnixTimeMillis :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeMillis
-parseUnixTimeMillis locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, mil) = properFracMillis _dtz_sec
-          in createUnixTimeMillis _dtz_hour _dtz_min sec mil
+parseUnixTimeMillis :: FormatText -> Text -> Either ParseError UnixTimeMillis
+parseUnixTimeMillis = parseUnixTimeMillis' def
+
+-- | Same as @parseUnixTimeMillis@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> let urdu = defaultTimeLocale { wDays = [("پير","پير"),("اتوار","اتوار")...
+-- > >>> parseUnixTimeMillis' urdu "%l:%M:%S.%Q %p" " 3:12:47.624 ش"
+-- > Right 15:12:47.624
+--
+parseUnixTimeMillis' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeMillis
+parseUnixTimeMillis' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixTimeMillis hour _set_min sec mil
+          where hour = _set_ampm _set_hour
+                (,) sec mil = properFracMillis $ _set_frac _set_sec
 
 -- | Parse a Unix time with microsecond granularity.
 --
--- > >>> parseUnixTimeMicros "%R:%S%Q" "03:15:50.513439"
+-- > >>> parseUnixTimeMicros "%R:%S.%Q" "03:15:50.513439"
 -- > Right 03:15:50.513439
 --
-parseUnixTimeMicros :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeMicros
-parseUnixTimeMicros locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, mic) = properFracMicros _dtz_sec
-          in createUnixTimeMicros _dtz_hour _dtz_min sec mic
+parseUnixTimeMicros :: FormatText -> Text -> Either ParseError UnixTimeMicros
+parseUnixTimeMicros = parseUnixTimeMicros' def
+
+-- | Same as @parseUnixTimeMicros@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> let chinese = defaultTimeLocale { wDays = [("星期日","日"),("星期一","一")...
+-- > >>> parseUnixTimeMicros' chinese "%p%I:%M:%S.%Q" "下午11:46:18.130561"
+-- > Right 23:46:18.130561
+--
+parseUnixTimeMicros' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeMicros
+parseUnixTimeMicros' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixTimeMicros hour _set_min sec mic
+          where hour = _set_ampm _set_hour
+                (,) sec mic = properFracMicros $ _set_frac _set_sec
 
 -- | Parse a Unix time with nanosecond granularity.
 --
--- > >>> parseUnixTimeNanos "%X%Q" "23:34:39.734563023"
--- > Right 23:34:39.734563023
+-- > >>> parseUnixTimeNanos "%l:%M:%S.%Q %P" " 1:27:44.001256754 pm"
+-- > Right 13:27:44.001256754
 --
-parseUnixTimeNanos :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeNanos
-parseUnixTimeNanos locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, nan) = properFracNanos _dtz_sec
-          in createUnixTimeNanos _dtz_hour _dtz_min sec nan
+parseUnixTimeNanos :: FormatText -> Text -> Either ParseError UnixTimeNanos
+parseUnixTimeNanos = parseUnixTimeNanos' def
+
+-- | Same as @parseUnixTimeNanos@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> let swahili = defaultTimeLocale { wDays = [("Jumapili","J2"),("Jumatatu","J3")...
+-- > >>> parseUnixTimeNanos' swahili "%H:%M:%S.%Q %p" "12:05:50.547621324 asubuhi"
+-- > Right 00:05:50.547621324
+--
+parseUnixTimeNanos' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimeNanos
+parseUnixTimeNanos' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixTimeNanos hour _set_min sec nan
+          where hour = _set_ampm _set_hour
+                (,) sec nan = properFracNanos $ _set_frac _set_sec
 
 -- | Parse a Unix time with picosecond granularity.
 --
--- > >>> parseUnixTimePicos "%T%Q" "02:28:56.621236981055"
--- > Right 02:28:56.621236981055
+-- > >>> parseUnixTimePicos "%T.%QZ" "13:09:23.247795919586Z"
+-- > Right 13:09:23.247795919586
 --
-parseUnixTimePicos :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimePicos
-parseUnixTimePicos locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, pic) = properFracPicos _dtz_sec
-          in createUnixTimePicos _dtz_hour _dtz_min sec pic
+parseUnixTimePicos :: FormatText -> Text -> Either ParseError UnixTimePicos
+parseUnixTimePicos = parseUnixTimePicos' def
+
+-- | Same as @parseUnixTimePicos@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> let japanese = defaultTimeLocale { wDays = [("日曜日","日"),("月曜日","月")...
+-- > >>> parseUnixTimePicos' japanese "%I:%M:%S.%Q %p" "04:20:15.340563315063 午前"
+-- > Right 04:20:15.340563315063
+--
+parseUnixTimePicos' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixTimePicos
+parseUnixTimePicos' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixTimePicos hour _set_min sec pic
+          where hour = _set_ampm _set_hour
+                (,) sec pic = properFracPicos $ _set_frac _set_sec
 
 -- | Parse a Unix date and time.
 --
 -- > >>> parseUnixDateTime "%FT%TZ" "2014-02-27T11:31:20Z"
 -- > Right 2014-02-27 11:31:20
 --
-parseUnixDateTime :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTime
-parseUnixDateTime locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let sec = truncate _dtz_sec
-          in createUnixDateTime _dtz_year _dtz_mon _dtz_mday _dtz_hour _dtz_min sec
+parseUnixDateTime :: FormatText -> Text -> Either ParseError UnixDateTime
+parseUnixDateTime = parseUnixDateTime' def
+
+-- | Same as @parseUnixDateTime@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> let somali = defaultTimeLocale { wDays = [("Axad","Axa"),("Isniin","Isn")...
+-- > >>> parseUnixDateTime' somali "%A, %B %e, %r %Y" "Salaaso, Bisha Saddexaad 11, 03:41:33 galabnimo 2014"
+-- > Right 2014-03-11 15:41:33
+--
+parseUnixDateTime' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTime
+parseUnixDateTime' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixDateTime _set_year _set_mon _set_mday hour _set_min sec
+          where hour = _set_ampm _set_hour
+                sec  = truncate _set_sec
 
 -- | Parse a Unix date and time with millisecond granularity.
 --
--- > >>> parseUnixDateTimeMillis "%a %B %e %T%Q %p %Y" "Wed March 5 06:53:04.475 PM 2014"
+-- > >>> parseUnixDateTimeMillis "%a %B %e %I:%M:%S.%Q %p %Y" "Wed March  5 06:53:04.475 PM 2014"
 -- > Right 2014-03-05 18:53:04.475
 --
-parseUnixDateTimeMillis :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeMillis
-parseUnixDateTimeMillis locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, mil) = properFracMillis _dtz_sec
-          in createUnixDateTimeMillis _dtz_year _dtz_mon _dtz_mday _dtz_hour _dtz_min sec mil
+parseUnixDateTimeMillis :: FormatText -> Text -> Either ParseError UnixDateTimeMillis
+parseUnixDateTimeMillis = parseUnixDateTimeMillis' def
+
+-- | Same as @parseUnixDateTimeMillis@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> let turkish = defaultTimeLocale { wDays = [("Pazar","Paz"),("Pazartesi","Pzt")...
+-- > >>> parseUnixDateTimeMillis' turkish "%a %B %e %I:%M:%S.%Q %p %Y" "Prş Mart 13 07:22:54.324 ÖS 2014"
+-- > Right 2014-03-13 19:22:54.324
+--
+parseUnixDateTimeMillis' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeMillis
+parseUnixDateTimeMillis' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixDateTimeMillis _set_year _set_mon _set_mday hour _set_min sec mil
+          where hour = _set_ampm _set_hour
+                (,) sec mil = properFracMillis $ _set_frac _set_sec
 
 -- | Parse a Unix date and time with microsecond granularity.
 --
--- > >>> parseUnixDateTimeMicros "%D %X%Q" "03/06/14 17:26:55.148415"
+-- > >>> parseUnixDateTimeMicros "%D %T.%Q" "03/06/14 17:26:55.148415"
 -- > Right 2014-03-06 17:26:55.148415
 --
-parseUnixDateTimeMicros :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeMicros
-parseUnixDateTimeMicros locale format text = fun <$> parseDateTimeZoneStruct locale Universal format text
-  where fun DateTimeZoneStruct{..} =
-          let (sec, mic) = properFracMicros _dtz_sec
-          in createUnixDateTimeMicros _dtz_year _dtz_mon _dtz_mday _dtz_hour _dtz_min sec mic
+parseUnixDateTimeMicros :: FormatText -> Text -> Either ParseError UnixDateTimeMicros
+parseUnixDateTimeMicros = parseUnixDateTimeMicros' def
+
+-- | Same as @parseUnixDateTimeMicros@, except takes 'TimeLocale' as an additional parameter.
+--
+-- > >>> 
+-- > >>> 
+-- > 
+--
+parseUnixDateTimeMicros' :: TimeLocale -> FormatText -> Text -> Either ParseError UnixDateTimeMicros
+parseUnixDateTimeMicros' locale format text = fun <$> parseTZ locale Universal format text
+  where fun TZ{..} = createUnixDateTimeMicros _set_year _set_mon _set_mday hour _set_min sec mic
+          where hour = _set_ampm _set_hour
+                (,) sec mic = properFracMicros $ _set_frac _set_sec
+
+{-
 
 -- | Parse a Unix date and time with nanosecond granularity.
 --
@@ -295,73 +416,73 @@ parseLocalDateTimeNanos locale city format text = fromDateTimeZoneStruct <$> par
 parseLocalDateTimePicos :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimePicos
 parseLocalDateTimePicos locale city format text = fromDateTimeZoneStruct <$> parseDateTimeZoneStruct locale city format text
 
--- | Initialize date, time, and time zone components.
-initStruct :: DateTimeZoneStruct
-initStruct =  DateTimeZoneStruct 1970 January 1 Thursday 0 0 0.0 utc
+-}
 
--- | Parse date, time, and time zone components.
-parseDateTimeZoneStruct
+-- | Initialize timestamp components.
+initTZ :: TZ
+initTZ =  TZ 1970 January 1 Thursday 0 0 0.0 id id utc
+
+-- | Parse timestamp components.
+parseTZ
   :: TimeLocale
   -> City
   -> FormatText
   -> Text
-  -> Either ParseError DateTimeZoneStruct
-parseDateTimeZoneStruct locale city format text =
+  -> Either ParseError TZ
+parseTZ locale city format text =
   either left Right $ do
     parser <- parseFormat locale city format
     parseOnly parser text
     where left = Left . ParseError
 
--- | Parse a format string.
+-- | Parse format text.
 parseFormat
   :: TimeLocale
   -> City
   -> FormatText
-  -> Either String (Parser DateTimeZoneStruct)
+  -> Either String (Parser TZ)
 parseFormat locale city =
   fmap exec . parseOnly parser
   where parser = many' $ createParser locale city
-        exec x = flip execState initStruct <$> sequence <$> sequence x
+        exec x = flip execState initTZ <$> sequence <$> sequence x
 
--- | Create a format string parser.
+-- | Create a format text parser.
 createParser
   :: TimeLocale
   -> City
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> Parser (Parser (State TZ ()))
 createParser locale city =
       matchLit "%%"
-  <|> matchSet "%A" dtz_wday (weekLong locale)
-  <|> matchSet "%a" dtz_wday (weekShort locale)
-  <|> matchSet "%B" dtz_mon (monthLong locale)
-  <|> matchSet "%b" dtz_mon (monthShort locale)
-  <|> matchMDY "%D" dtz_year dtz_mon dtz_mday
-  <|> matchSet "%d" dtz_mday (fixInt 2)
-  <|> matchSet "%e" dtz_mday padIntTwo
-  <|> matchYMD "%F" dtz_year dtz_mon dtz_mday
-  <|> matchSet "%H" dtz_hour (fixInt 2)
-  <|> matchSet "%h" dtz_mon (monthShort locale)
-  <|> matchSet "%I" dtz_hour (fixInt 2)
-  <|> matchSet "%l" dtz_hour padIntTwo
-  <|> matchSet "%M" dtz_min (fixInt 2)
-  <|> matchSet "%m" dtz_mon monthInt
-  <|> matchMod "%P" dtz_hour (period locale toLower)
-  <|> matchMod "%p" dtz_hour (period locale toUpper)
-  <|> matchMod "%Q" dtz_sec decimal
-  <|> matchHM  "%R" dtz_hour dtz_min
-  <|> matchT12 "%r" dtz_hour dtz_min dtz_sec locale
-  <|> matchSet "%S" dtz_sec second
-  <|> matchHMS "%T" dtz_hour dtz_min dtz_sec
-  <|> matchHMS "%X" dtz_hour dtz_min dtz_sec
-  <|> matchMDY "%x" dtz_year dtz_mon dtz_mday
-  <|> matchSet "%Y" dtz_year (fixInt 4)
-  <|> matchSet "%y" dtz_year yearTwo
-  <|> matchSet "%Z" dtz_zone (timezone city)
+  <|> matchSet "%A" set_wday (weekLong   locale)
+  <|> matchSet "%a" set_wday (weekShort  locale)
+  <|> matchSet "%B" set_mon  (monthLong  locale)
+  <|> matchSet "%b" set_mon  (monthShort locale)
+  <|> matchMDY "%D" set_year  set_mon set_mday
+  <|> matchSet "%d" set_mday (fixInt 2)
+  <|> matchSet "%e" set_mday  padIntTwo
+  <|> matchYMD "%F" set_year  set_mon set_mday
+  <|> matchSet "%H" set_hour (fixInt 2)
+  <|> matchSet "%h" set_mon  (monthShort locale)
+  <|> matchSet "%I" set_hour (fixInt 2)
+  <|> matchSet "%l" set_hour  padIntTwo
+  <|> matchSet "%M" set_min  (fixInt 2)
+  <|> matchSet "%m" set_mon   monthInt
+  <|> matchSet "%P" set_ampm (period locale toLower)
+  <|> matchSet "%p" set_ampm (period locale id)
+  <|> matchSet "%Q" set_frac  fraction
+  <|> matchHM  "%R" set_hour  set_min
+  <|> matchT12 "%r" set_hour  set_min set_sec locale
+  <|> matchSet "%S" set_sec   second
+  <|> matchHMS "%T" set_hour  set_min set_sec
+  <|> matchSet "%Y" set_year (fixInt 4)
+  <|> matchSet "%y" set_year  yearTwo
+  <|> matchSet "%Z" set_zone (timezone city)
   <|> matchTxt
 
 -- | Match a percent literal.
 matchLit
   :: Text
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> Parser (Parser (State TZ ()))
 matchLit code =
   string code *>
   return (char '%' *> return (return ()))
@@ -370,9 +491,9 @@ matchLit code =
 --   with the value returned by the parser.
 matchSet 
   :: Text
-  -> (DateTimeZoneStruct :-> a)
+  -> (TZ :-> a)
   -> Parser a
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> Parser (Parser (State TZ ()))
 matchSet code field parser =
   string code *> return (puts field <$> parser)
 
@@ -380,10 +501,10 @@ matchSet code field parser =
 --   the fields with the values returned by the parser.
 matchYMD
   :: Text
-  -> (DateTimeZoneStruct :-> Year )
-  -> (DateTimeZoneStruct :-> Month)
-  -> (DateTimeZoneStruct :-> Day  )
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> (TZ :-> Year )
+  -> (TZ :-> Month)
+  -> (TZ :-> Day  )
+  -> Parser (Parser (State TZ ()))
 matchYMD code _year _mon _day =
   string code *> return parser where
   parser = do
@@ -399,10 +520,10 @@ matchYMD code _year _mon _day =
 --   the fields with the values returned by the parser.
 matchMDY
   :: Text
-  -> (DateTimeZoneStruct :-> Year )
-  -> (DateTimeZoneStruct :-> Month)
-  -> (DateTimeZoneStruct :-> Day  )
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> (TZ :-> Year )
+  -> (TZ :-> Month)
+  -> (TZ :-> Day  )
+  -> Parser (Parser (State TZ ()))
 matchMDY code _year _mon _day =
   string code *> return parser where
   parser = do
@@ -418,9 +539,9 @@ matchMDY code _year _mon _day =
 --   fields with the values returned by the parser.
 matchHM
   :: Text
-  -> (DateTimeZoneStruct :-> Hour  )
-  -> (DateTimeZoneStruct :-> Minute)
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> (TZ :-> Hour  )
+  -> (TZ :-> Minute)
+  -> Parser (Parser (State TZ ()))
 matchHM  code _hour _min =
   string code *> return parser where
   parser = do
@@ -434,10 +555,10 @@ matchHM  code _hour _min =
 --   the fields with the values returned by the parser.
 matchHMS
   :: Text
-  -> (DateTimeZoneStruct :-> Hour  )
-  -> (DateTimeZoneStruct :-> Minute)
-  -> (DateTimeZoneStruct :-> Double)
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> (TZ :-> Hour  )
+  -> (TZ :-> Minute)
+  -> (TZ :-> Double)
+  -> Parser (Parser (State TZ ()))
 matchHMS code _hour _min _sec =
   string code *> return parser where
   parser = do
@@ -453,36 +574,26 @@ matchHMS code _hour _min _sec =
 --   update the fields with the values returned by the parser.
 matchT12
   :: Text
-  -> (DateTimeZoneStruct :-> Hour  )
-  -> (DateTimeZoneStruct :-> Minute)
-  -> (DateTimeZoneStruct :-> Double)
+  -> (TZ :-> Hour  )
+  -> (TZ :-> Minute)
+  -> (TZ :-> Double)
   -> TimeLocale
-  -> Parser (Parser (State DateTimeZoneStruct ()))
+  -> Parser (Parser (State TZ ()))
 matchT12 code _hour _min _sec locale =
   string code *> return parser where
   parser = do
     h <- fixInt 2; _ <- char ':'
     m <- fixInt 2; _ <- char ':'
     s <- second  ; _ <- char ' '
-    f <- period locale toUpper
+    f <- period locale id
     return $!
       puts   _hour h *>
       puts   _min  m *>
       puts   _sec  s *>
       modify _hour f
 
--- | Match a percent code and modify the field
---   with the function returned by the parser.
-matchMod
-  :: Text
-  -> (DateTimeZoneStruct :-> a)
-  -> Parser (a -> a)
-  -> Parser (Parser (State DateTimeZoneStruct ()))
-matchMod code field parser =
-  string code *> return (modify field <$> parser)
-
 -- | Match any other character sequence.
-matchTxt :: Parser (Parser (State DateTimeZoneStruct ()))
+matchTxt :: Parser (Parser (State TZ ()))
 matchTxt = takeWhile1 (/='%') >>= return . \ src -> do
   trg <- P.take $ T.length src
   if src == trg then return (return ())
@@ -540,9 +651,8 @@ second :: Parser Double
 second = (realToFrac :: Int -> Double) <$> fixInt 2
 
 -- | Parse a decimal in zero to twelve digit format.
-decimal :: Parser (Double -> Double)
-decimal = do
-  _       <- char '.'
+fraction :: Parser (Double -> Double)
+fraction = do
   (,) n l <- foldM step (0,0) [1..12]
   return $! (+ realToFrac n * 10 ** (- realToFrac l))
   where step :: (Int, Int) -> Int -> Parser (Int, Int)
