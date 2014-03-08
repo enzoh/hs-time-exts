@@ -34,12 +34,11 @@ module Data.Time.Exts.Parser (
  -- ** Parse UTC and Local Timestamps
      , parseLocalDate
      , parseLocalDateTime
-{-
      , parseLocalDateTimeMillis
      , parseLocalDateTimeMicros
      , parseLocalDateTimeNanos
      , parseLocalDateTimePicos
--}
+
  -- ** Parse Unix Timestamps With Parameters
      , parseUnixDate'
      , parseUnixTime'
@@ -56,12 +55,11 @@ module Data.Time.Exts.Parser (
  -- ** Parse UTC and Local Timestamps With Parameters
      , parseLocalDate'
      , parseLocalDateTime'
-{-
      , parseLocalDateTimeMillis'
      , parseLocalDateTimeMicros'
      , parseLocalDateTimeNanos'
      , parseLocalDateTimePicos'
--}
+
      ) where
 
 import Control.Applicative              ((<|>), (<$>), (*>))
@@ -420,42 +418,86 @@ parseLocalDateTime' locale city format text = fun <$> parseTimestamp locale city
           where hour = _set_ampm _set_hour
                 sec  = truncate _set_sec
 
-{-
-
 -- | Parse a local date and time with millisecond granularity.
 --
--- > >>> parseLocalDateTimeMillis Tel_Aviv "%B %e %Y %I:%M:%S%Q %p %Z" "July 1 2012 01:59:60.215 AM IST"
--- > Right 2012-07-01 01:59:60.215 IST
+-- > >>> parseLocalDateTimeMillis "%B %e %Y %I:%M:%S.%Q %p %Z" "July  1 2012 01:59:60.215 AM EET"
+-- > Right 2012-07-01 01:59:60.215 EET
 --
 --   Note that the timestamp in the example above corresponds to a leap second.
-parseLocalDateTimeMillis :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimeMillis
-parseLocalDateTimeMillis locale city format text = fromDateTimeZoneStruct <$> parseDateTimeZoneStruct locale city format text
+parseLocalDateTimeMillis :: FormatText -> Text -> Either ParseError LocalDateTimeMillis
+parseLocalDateTimeMillis = parseLocalDateTimeMillis' def Universal
+
+-- | Same as @parseLocalDateTimeMillis@, except takes an additional locale and city parameter.
+--
+-- > >>> parseLocalDateTimeMillis' defaultTimeLocale Chicago "%B %e %Y %I:%M:%S.%Q %p %Z" "July 13 2013 12:15:30.985 AM CDT"
+-- > Right 2013-07-13 00:15:30.985 CDT
+--
+--   Note that the city parameter is required to distinguish between the United States and China.
+parseLocalDateTimeMillis' :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimeMillis
+parseLocalDateTimeMillis' locale city format text = fun <$> parseTimestamp locale city format text
+  where fun TZ{..} = createLocalDateTimeMillis _set_year _set_mon _set_mday hour _set_min sec mil _set_zone
+          where hour = _set_ampm _set_hour
+                (,) sec mil = properFracMillis $ _set_frac _set_sec
 
 -- | Parse a local date and time with microsecond granularity.
 --
--- > >>> parseLocalDateTimeMicros Hong_Kong "%F %T%Q (%Z)" "2014-03-04 02:45:42.827495 (HKT)"
+-- > >>> parseLocalDateTimeMicros "%F %T.%Q (%Z)" "2014-03-04 02:45:42.827495 (HKT)"
 -- > Right 2014-03-04 02:45:42.827495 HKT
 --
-parseLocalDateTimeMicros :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimeMicros
-parseLocalDateTimeMicros locale city format text = fromDateTimeZoneStruct <$> parseDateTimeZoneStruct locale city format text
+parseLocalDateTimeMicros :: FormatText -> Text -> Either ParseError LocalDateTimeMicros
+parseLocalDateTimeMicros = parseLocalDateTimeMicros' def Universal
+
+-- | Same as @parseLocalDateTimeMicros@, except takes an additional locale and city parameter.
+--
+-- > >>> let spanish = defaultTimeLocale { wDays = [("domingo","dom"),("lunes","lun")...
+-- > >>> parseLocalDateTimeMicros' spanish Paris "%a %d %b %I:%M:%S.%Q %P %Y %Z" "dom 26 ene 04:27:16.743312 pm 2014 CET"
+-- > Right 2014-01-26 16:27:16.743312 CET
+--
+parseLocalDateTimeMicros' :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimeMicros
+parseLocalDateTimeMicros' locale city format text = fun <$> parseTimestamp locale city format text
+  where fun TZ{..} = createLocalDateTimeMicros _set_year _set_mon _set_mday hour _set_min sec mic _set_zone
+          where hour = _set_ampm _set_hour
+                (,) sec mic = properFracMicros $ _set_frac _set_sec
 
 -- | Parse a local date and time with nanosecond granularity.
 --
--- > >>> parseLocalDateTimeNanos Universal "%b. %d, %T%Q %Z %Y" "Mar. 09, 18:53:55.856423459 UTC 2014"
+-- > >>> parseLocalDateTimeNanos "%b. %d, %T.%Q %Z %Y" "Mar. 09, 18:53:55.856423459 UTC 2014"
 -- > Right 2014-03-09 18:53:55.856423459 UTC
 --
-parseLocalDateTimeNanos :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimeNanos
-parseLocalDateTimeNanos locale city format text = fromDateTimeZoneStruct <$> parseDateTimeZoneStruct locale city format text
+parseLocalDateTimeNanos :: FormatText -> Text -> Either ParseError LocalDateTimeNanos
+parseLocalDateTimeNanos = parseLocalDateTimeNanos' def Universal
+
+-- | Same as @parseLocalDateTimeNanos@, except takes an additional locale and city parameter.
+--
+-- > >>> let italian = defaultTimeLocale { wDays = [("domenica","dom"),("lunedì","lun")...
+-- > >>> parseLocalDateTimeNanos' italian Paris "%a %e %b %Y %T.%Q %Z" "sab 12 apr 2014 04:59:21.528207540 CEST"
+-- > Right 2014-04-12 04:59:21.528207540 CEST
+--
+parseLocalDateTimeNanos' :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimeNanos
+parseLocalDateTimeNanos' locale city format text = fun <$> parseTimestamp locale city format text
+  where fun TZ{..} = createLocalDateTimeNanos _set_year _set_mon _set_mday hour _set_min sec nan _set_zone
+          where hour = _set_ampm _set_hour
+                (,) sec nan = properFracNanos $ _set_frac _set_sec
 
 -- | Parse a local date and time with picosecond granularity.
 --
--- > >>> parseLocalDateTimePicos Singapore "%d.%m.%Y %T%Q %Z" "09.04.2014 05:22:56.587234905781 SGT"
+-- > >>> parseLocalDateTimePicos "%d.%m.%Y %T.%Q %Z" "09.04.2014 05:22:56.587234905781 SGT"
 -- > Right 2014-04-09 05:22:56.587234905781 SGT
 --
-parseLocalDateTimePicos :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimePicos
-parseLocalDateTimePicos locale city format text = fromDateTimeZoneStruct <$> parseDateTimeZoneStruct locale city format text
+parseLocalDateTimePicos :: FormatText -> Text -> Either ParseError LocalDateTimePicos
+parseLocalDateTimePicos = parseLocalDateTimePicos' def Universal
 
--}
+-- | Same as @parseLocalDateTimePicos@, except takes an additional locale and city parameter.
+--
+-- > >>> parseLocalDateTimePicos' defaultTimeLocale Shanghai "%a %b %d %Y %T.%Q %Z" "Sat Mar 08 2014 22:51:47.264356423524 CST"
+-- > Right 2014-03-08 22:51:47.264356423524 CST
+--
+--   Note that the city parameter is required to distinguish between the United States and China.
+parseLocalDateTimePicos' :: TimeLocale -> City -> FormatText -> Text -> Either ParseError LocalDateTimePicos
+parseLocalDateTimePicos' locale city format text = fun <$> parseTimestamp locale city format text
+  where fun TZ{..} = createLocalDateTimePicos _set_year _set_mon _set_mday hour _set_min sec pic _set_zone
+          where hour = _set_ampm _set_hour
+                (,) sec pic = properFracPicos $ _set_frac _set_sec
 
 -- | Initialize timestamp components.
 initTZ :: TZ
