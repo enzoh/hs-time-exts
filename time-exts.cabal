@@ -1,5 +1,5 @@
 Name:               time-exts
-Version:            2.1.0
+Version:            2.1.1
 License:            BSD3
 License-File:       LICENSE
 Copyright:          Copyright (c) 2014, Enzo Haussecker. All rights reserved.
@@ -7,7 +7,7 @@ Author:             Enzo Haussecker <enzo@ucsd.edu>
 Maintainer:         Enzo Haussecker <enzo@ucsd.edu>
 Stability:          Stable
 Category:           Time
-Synopsis:           Efficient Timestamps
+Synopsis:           Timestamp Extensions
 Homepage:           https://github.com/enzoh/time-exts
 Bug-Reports:        https://github.com/enzoh/time-exts/issues
 Build-Type:         Simple
