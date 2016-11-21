@@ -1,6 +1,6 @@
 dist: trusty
 
-language: haskell
+language: c
 
 env:
 - RESOLVER=lts-6.14
