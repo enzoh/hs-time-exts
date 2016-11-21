@@ -1,66 +1,70 @@
-Name:               time-exts
-Version:            2.1.1
-License:            BSD3
-License-File:       LICENSE
-Copyright:          Copyright (c) 2014, Enzo Haussecker. All rights reserved.
-Author:             Enzo Haussecker <enzo@ucsd.edu>
-Maintainer:         Enzo Haussecker <enzo@ucsd.edu>
-Stability:          Stable
-Category:           Time
-Synopsis:           Timestamp Extensions
-Homepage:           https://github.com/enzoh/time-exts
-Bug-Reports:        https://github.com/enzoh/time-exts/issues
-Build-Type:         Simple
-Cabal-Version:      >= 1.16.0
-Description:        Haskell timestamps in various bit length and granularity.
+name:          time-exts
+version:       3.0.0
+synopsis:      Yet another time library
+license:       BSD3
+author:        Enzo Haussecker
+maintainer:    enzo@sovereign.io
+copyright:     2013-2016 Enzo Haussecker
+category:      Time
+build-type:    Simple
+cabal-version: >=1.10
 
-Library
-  Default-Language: Haskell2010
-  HS-Source-Dirs:   src
-  Exposed-Modules:  Data.Time.Exts
-                    Data.Time.Exts.Base
-                    Data.Time.Exts.C
-                    Data.Time.Exts.Local
-                    Data.Time.Exts.Parser
-                    Data.Time.Exts.Unix
-                    Data.Time.Exts.Zone
-  Build-Depends:    aeson,
-                    attoparsec,
-                    base >= 4 && < 5,
-                    bindings-DSL,
-                    containers,
-                    convertible,
-                    data-default,
-                    deepseq,
-                    fclabels >= 2.0,
-                    mtl,
-                    old-locale,
-                    QuickCheck,
-                    random,
-                    text,
-                    time,
-                    timezone-olson
-  Build-Tools:      hsc2hs
+library
+   default-language:
+      Haskell2010
+   exposed-modules:
+      Data.Time.Exts.Base
+      Data.Time.Exts.Format
+      Data.Time.Exts.Unix
+   other-modules:
+      Data.Time.Exts.Lens
+      Data.Time.Exts.Parser
+      Data.Time.Exts.Util
+      Foreign.C.Time
+   build-depends:
+      attoparsec,
+      base,
+      bindings-DSL,
+      deepseq,
+      lens-simple,
+      mtl,
+      old-locale,
+      random,
+      text,
+      time,
+      tz
+   ghc-options:
+      -Wall
 
-Executable test-time-exts
-  Default-Language: Haskell2010
-  HS-Source-Dirs:   src
-  Main-Is:          Data/Time/Exts/Test.hs
-  Other-Modules:    Data.Time.Exts.C
-  Build-Depends:    aeson,
-                    attoparsec,
-                    base >= 4 && < 5,
-                    bindings-DSL,
-                    containers,
-                    convertible,
-                    data-default,
-                    deepseq,
-                    fclabels >= 2.0,
-                    mtl,
-                    old-locale,
-                    QuickCheck,
-                    random,
-                    text,
-                    time,
-                    timezone-olson
-  Build-Tools:      hsc2hs
+test-suite time-exts-unit-tests
+   default-language:
+      Haskell2010
+   type:
+      exitcode-stdio-1.0
+   main-is:
+      Test.hs
+   other-modules:
+      Data.Time.Exts.Base
+      Data.Time.Exts.Format
+      Data.Time.Exts.Lens
+      Data.Time.Exts.Parser
+      Data.Time.Exts.Unix
+      Data.Time.Exts.Util
+      Foreign.C.Time
+   build-depends:
+      attoparsec,
+      base,
+      bindings-DSL,
+      deepseq,
+      HUnit,
+      ieee754,
+      lens-simple,
+      mtl,
+      old-locale,
+      QuickCheck,
+      random,
+      text,
+      time,
+      tz
+   ghc-options:
+      -Wall
