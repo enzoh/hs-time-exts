@@ -2,18 +2,13 @@ dist: trusty
 
 language: c
 
-env:
-- RESOLVER=lts-6.14
-
-before_install:
+install:
 - travis_retry sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 575159689BEFB442
 - travis_retry echo 'deb https://download.fpcomplete.com/ubuntu trusty main' | sudo tee /etc/apt/sources.list.d/fpco.list
 - travis_retry sudo apt-get update -y
 - travis_retry sudo apt-get install stack -y
 
-install:
-- travis_retry stack --resolver $RESOLVER setup
-
 script:
-- stack --resolver $RESOLVER build
-- stack --resolver $RESOLVER test
+- stack setup
+- stack build
+- stack test
