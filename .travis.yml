@@ -15,5 +15,5 @@ install:
 - travis_retry stack --resolver $RESOLVER setup
 
 script:
-- stack build
-- stack test
+- stack --resolver $RESOLVER build
+- stack --resolver $RESOLVER test
