@@ -23,9 +23,9 @@
 module Data.Time.Exts.Unix (
 
   -- * Timestamps
-       UnixDate
-     , UnixDateTime
-     , UnixDateTimeNanos
+       UnixDate(..)
+     , UnixDateTime(..)
+     , UnixDateTimeNanos(..)
 
   -- * Create Timestamps
      , createUnixDate
