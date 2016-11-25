@@ -15,6 +15,7 @@ library
    exposed-modules:
       Data.Time.Exts.Base
       Data.Time.Exts.Format
+      Data.Time.Exts.UTC
       Data.Time.Exts.Unix
    other-modules:
       Data.Time.Exts.Lens
