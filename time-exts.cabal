@@ -13,6 +13,7 @@ library
    default-language:
       Haskell2010
    exposed-modules:
+      Data.Time.Exts
       Data.Time.Exts.Base
       Data.Time.Exts.Format
       Data.Time.Exts.UTC
