@@ -49,7 +49,6 @@ import Control.DeepSeq  (NFData)
 import Data.Data        (Data, Typeable)
 import Data.Int         (Int32, Int64)
 import Data.Text        (Text)
-import Data.Time        (utc)
 import Foreign.C.Time   (C'timeval(..), getTimeOfDay)
 import Foreign.C.Types  (CLong(..))
 import Foreign.Ptr      (plusPtr)
@@ -535,11 +534,6 @@ getCurrentUnixDateTimeNanos =
       return $! UnixDateTimeNanos base (fromIntegral usec * 1000)
 
 -- |
--- Default parser state.
-state :: ParserState 'Gregorian
-state =  ParserState 1970 January 1 Thursday 0 0 0.0 id id (const (return utc))
-
--- |
 -- Parse a Unix datestamp.
 parseUnixDate
    :: TimeLocale
@@ -547,7 +541,7 @@ parseUnixDate
    -> Text
    -> Either String (UnixDate 'Gregorian)
 parseUnixDate locale format input =
-   build <$> runParser locale Nothing state format input
+   build <$> runParser locale Nothing defaultParserState format input
    where build ParserState {..} =
             createUnixDate _ps_year _ps_mon _ps_mday
 
@@ -559,7 +553,7 @@ parseUnixDateTime
    -> Text
    -> Either String (UnixDateTime 'Gregorian)
 parseUnixDateTime locale format input =
-   build <$> runParser locale Nothing state format input
+   build <$> runParser locale Nothing defaultParserState format input
    where build ParserState {..} =
             createUnixDateTime _ps_year _ps_mon _ps_mday hour _ps_min sec
             where hour = _ps_ampm _ps_hour
@@ -573,7 +567,7 @@ parseUnixDateTimeNanos
    -> Text
    -> Either String (UnixDateTimeNanos 'Gregorian)
 parseUnixDateTimeNanos locale format input =
-   build <$> runParser locale Nothing state format input
+   build <$> runParser locale Nothing defaultParserState format input
    where build ParserState {..} =
             createUnixDateTimeNanos _ps_year _ps_mon _ps_mday hour _ps_min sec nsec
             where hour = _ps_ampm _ps_hour

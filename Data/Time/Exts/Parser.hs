@@ -26,6 +26,7 @@ module Data.Time.Exts.Parser (
 
   -- * State
      , ParserState(..)
+     , defaultParserState
 
   -- * Lenses
      , ps_year
@@ -50,8 +51,8 @@ import Data.Char                  (isAlpha)
 import Data.Foldable              (asum)
 import Data.Int                   (Int64)
 import Data.Text                  (Text, length, pack, toLower, unpack)
-import Data.Time                  (TimeZone(..))
-import Data.Time.Exts.Base        (Calendar, Day, DayOfWeek, Hour, Minute, Month, Year)
+import Data.Time                  (TimeZone(..), utc)
+import Data.Time.Exts.Base        (Calendar(..), Day, DayOfWeek(..), Hour, Minute, Month(..), Year)
 import Data.Time.Exts.Format      (Format)
 import Data.Time.Zones            (LocalToUTCResult(..), TZ, localTimeToUTCFull)
 import Data.Time.Zones.Internal   (int64PairToLocalTime)
@@ -74,6 +75,11 @@ data ParserState (cal :: Calendar) =
      , _ps_ampm :: Hour   -> Hour
      , _ps_zone :: Int64  -> Either String TimeZone
      }
+
+-- |
+-- Default parser state.
+defaultParserState :: ParserState 'Gregorian
+defaultParserState =  ParserState 1970 January 1 Thursday 0 0 0.0 id id (const (return utc))
 
 makeLenses ''ParserState
 
