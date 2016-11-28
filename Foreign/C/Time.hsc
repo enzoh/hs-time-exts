@@ -4,6 +4,8 @@
 -- License    : BSD3
 -- Maintainer : Enzo Haussecker <enzo@sovereign.io>
 -- Stability  : Stable
+--
+-- High-level bindings to the C standard time library.
 
 {-# LANGUAGE LambdaCase   #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -25,14 +27,14 @@ module Foreign.C.Time (
 
      ) where
 
-import Data.Time.Exts.Base (Human(..))
-import Foreign.C.String (CString)
-import Foreign.C.Types (CInt(..), CLong, CTime(..))
-import Foreign.Marshal.Alloc (alloca)
+import Data.Time.Exts.Base    (Human(..))
+import Foreign.C.String       (CString)
+import Foreign.C.Types        (CInt(..), CLong, CTime(..))
+import Foreign.Marshal.Alloc  (alloca)
 import Foreign.Marshal.Unsafe (unsafeLocalState)
-import Foreign.Marshal.Utils (with)
-import Foreign.Ptr (FunPtr, Ptr, nullPtr, plusPtr)
-import Foreign.Storable (Storable(..))
+import Foreign.Marshal.Utils  (with)
+import Foreign.Ptr            (FunPtr, Ptr, nullPtr, plusPtr)
+import Foreign.Storable       (Storable(..))
 
 #include <bindings.dsl.h>
 #include <time.h>

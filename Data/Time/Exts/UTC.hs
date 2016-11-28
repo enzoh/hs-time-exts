@@ -4,6 +4,8 @@
 -- License    : BSD3
 -- Maintainer : Enzo Haussecker <enzo@sovereign.io>
 -- Stability  : Stable
+--
+-- A native implementation of Coordinated Universal Time.
 
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
@@ -26,17 +28,17 @@ module Data.Time.Exts.UTC (
      , UTCDateTime(..)
      , UTCDateTimeNanos(..)
 
-  -- * Create Timestamps
+  -- * Create
      , createUTCDate
      , createUTCDateTime
      , createUTCDateTimeNanos
 
-  -- * Get Current Timestamps
+  -- * Get
      , getCurrentUTCDate
      , getCurrentUTCDateTime
      , getCurrentUTCDateTimeNanos
 
-  -- * Parse Timestamps
+  -- * Parse
      , parseUTCDate
      , parseUTCDateTime
      , parseUTCDateTimeNanos
@@ -108,7 +110,7 @@ instance Enum (UTCDateTime 'Gregorian) where
    -- Previous second.
    pred = flip plus (- Second 1)
 
-   -- Unenumerate a UTC timestamp.
+   -- Denumerate a UTC timestamp.
    fromEnum (UTCDateTime base) = fromIntegral base
 
    -- Enumerate a UTC timestamp.
@@ -369,7 +371,7 @@ getCurrentUTCDateTime = do
    return $! UTCDateTime $ baseUnixToUTC unix
 
 -- |
--- Get the current UTC timestamp with nanosecond granularity from the system clock.
+-- Get the current UTC timestamp with nanosecond granularity from the system clock. Any observed leap second will be spread out over the day to ensure nanosecond continuity at midnight.
 getCurrentUTCDateTimeNanos :: IO (UTCDateTimeNanos 'Gregorian)
 getCurrentUTCDateTimeNanos = do
    UnixDateTimeNanos unix nsec <- getCurrentUnixDateTimeNanos

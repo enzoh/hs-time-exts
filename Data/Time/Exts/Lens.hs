@@ -4,6 +4,8 @@
 -- License    : BSD3
 -- Maintainer : Enzo Haussecker <enzo@sovereign.io>
 -- Stability  : Stable
+--
+-- A lens-based interface to date and time data structures.
 
 {-# LANGUAGE TemplateHaskell #-}
 

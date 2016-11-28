@@ -4,6 +4,8 @@
 -- License    : BSD3
 -- Maintainer : Enzo Haussecker <enzo@sovereign.io>
 -- Stability  : Stable
+--
+-- Basic definitions, including type classes, data types and type families.
 
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
@@ -82,11 +84,11 @@ class Human x where
 class Math x c where
 
    -- |
-   -- Compute the duration between two timestamps.
+   -- Calculate the duration between two timestamps.
    duration :: x -> x -> c
 
    -- |
-   -- Add time to a timestamp.
+   -- Add a duration to a timestamp.
    plus :: x -> c -> x
 
 -- |

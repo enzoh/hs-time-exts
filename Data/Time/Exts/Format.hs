@@ -4,10 +4,12 @@
 -- License    : BSD3
 -- Maintainer : Enzo Haussecker <enzo@sovereign.io>
 -- Stability  : Stable
+--
+-- A list of time format directives.
 
 module Data.Time.Exts.Format (
 
-  -- * Format
+  -- * Format Text
        Format
 
      ) where
@@ -15,7 +17,7 @@ module Data.Time.Exts.Format (
 import Data.Text (Text)
 
 -- |
--- Format text is composed of strftime directives, each matching time data described below.
+-- Format text is composed of time format directives, each matching data described below.
 --
 -- [@%%@] % literal.
 -- [@%A@] Full weekday name according to the current locale.

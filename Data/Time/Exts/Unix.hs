@@ -4,6 +4,8 @@
 -- License    : BSD3
 -- Maintainer : Enzo Haussecker <enzo@sovereign.io>
 -- Stability  : Stable
+--
+-- A native implementation of Unix Time.
 
 {-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE DataKinds                  #-}
@@ -27,17 +29,17 @@ module Data.Time.Exts.Unix (
      , UnixDateTime(..)
      , UnixDateTimeNanos(..)
 
-  -- * Create Timestamps
+  -- * Create
      , createUnixDate
      , createUnixDateTime
      , createUnixDateTimeNanos
 
-  -- * Get Current Timestamps
+  -- * Get
      , getCurrentUnixDate
      , getCurrentUnixDateTime
      , getCurrentUnixDateTimeNanos
 
-  -- * Parse Timestamps
+  -- * Parse
      , parseUnixDate
      , parseUnixDateTime
      , parseUnixDateTimeNanos
@@ -112,7 +114,7 @@ instance Enum (UnixDate 'Gregorian) where
    -- Previous day.
    pred = flip plus (- Day 1)
 
-   -- Unenumerate a Unix datestamp.
+   -- Denumerate a Unix datestamp.
    fromEnum (UnixDate base) = fromIntegral base
 
    -- Enumerate a Unix datestamp.
@@ -129,7 +131,7 @@ instance Enum (UnixDateTime 'Gregorian) where
    -- Previous second.
    pred = flip plus (- Second 1)
 
-   -- Unenumerate a Unix timestamp.
+   -- Denumerate a Unix timestamp.
    fromEnum (UnixDateTime base) = fromIntegral base
 
    -- Enumerate a Unix timestamp.
