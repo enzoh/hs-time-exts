@@ -3,7 +3,7 @@ version:       3.0.2
 synopsis:      Yet another time library
 license:       BSD3
 license-file:  LICENSE
-copyright:     2013-2016 Enzo Haussecker
+copyright:     2013-2017 Enzo Haussecker
 author:        Enzo Haussecker <enzo@sovereign.io>
 maintainer:    Enzo Haussecker <enzo@sovereign.io>
 stability:     Stable

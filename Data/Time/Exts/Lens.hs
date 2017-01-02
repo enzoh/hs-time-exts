@@ -1,6 +1,6 @@
 -- |
 -- Module     : Data.Time.Exts.Lens
--- Copyright  : 2013-2016 Enzo Haussecker
+-- Copyright  : 2013-2017 Enzo Haussecker
 -- License    : BSD3
 -- Maintainer : Enzo Haussecker <enzo@sovereign.io>
 -- Stability  : Stable
