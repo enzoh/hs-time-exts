@@ -333,7 +333,7 @@ createUTCDateTime
    -> Second
    -> UTCDateTime 'Gregorian
 createUTCDateTime year mon mday hour min sec =
-   if minBound <= time && time <= maxBound then time
+   if (minBound :: UTCDateTime 'Gregorian) <= time && time <= (maxBound :: UTCDateTime 'Gregorian) then time
    else error "createUTCDateTime: out of bounds"
    where UnixDateTime unix = createUnixDateTime year mon mday hour min 0
          time = UTCDateTime base
@@ -351,7 +351,7 @@ createUTCDateTimeNanos
    -> Nanos
    -> UTCDateTimeNanos 'Gregorian
 createUTCDateTimeNanos year mon mday hour min sec nanos =
-   if minBound <= time && time <= maxBound then time
+   if (minBound :: UTCDateTimeNanos 'Gregorian) <= time && time <= (maxBound :: UTCDateTimeNanos 'Gregorian) then time
    else error "createUTCDateTimeNanos: out of bounds"
    where UnixDateTime unix = createUnixDateTime year mon mday hour min 0
          time = UTCDateTimeNanos base nsec

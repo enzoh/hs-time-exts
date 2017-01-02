@@ -475,7 +475,7 @@ createUnixDate
    -> Day
    -> UnixDate 'Gregorian
 createUnixDate year mon mday =
-   if minBound <= date && date <= maxBound then date
+   if (minBound :: UnixDate 'Gregorian) <= date && date <= (maxBound :: UnixDate 'Gregorian) then date
    else error "createUnixDate: out of bounds"
    where Day base = unsafeEpochToDate year mon mday
          date = UnixDate base
@@ -491,7 +491,7 @@ createUnixDateTime
    -> Second
    -> UnixDateTime 'Gregorian
 createUnixDateTime year mon mday hour min sec =
-   if minBound <= time && time <= maxBound then time
+   if (minBound :: UnixDateTime 'Gregorian) <= time && time <= (maxBound :: UnixDateTime 'Gregorian) then time
    else error "createUnixDateTime: out of bounds"
    where Second base = unsafeEpochToDateTime year mon mday hour min sec
          time = UnixDateTime base
@@ -508,7 +508,7 @@ createUnixDateTimeNanos
    -> Nanos
    -> UnixDateTimeNanos 'Gregorian
 createUnixDateTimeNanos year mon mday hour min sec nanos =
-   if minBound <= time && time <= maxBound then time
+   if (minBound :: UnixDateTimeNanos 'Gregorian) <= time && time <= (maxBound :: UnixDateTimeNanos 'Gregorian) then time
    else error "createUnixDateTimeNanos: out of bounds"
    where Second base = unsafeEpochToDateTime year mon mday hour min sec
          nsum = fromIntegral nanos
