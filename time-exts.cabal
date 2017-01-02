@@ -1,11 +1,15 @@
 name:          time-exts
-version:       3.0.0
+version:       3.0.1
 synopsis:      Yet another time library
 license:       BSD3
-author:        Enzo Haussecker
-maintainer:    enzo@sovereign.io
+license-file:  LICENSE
 copyright:     2013-2016 Enzo Haussecker
+author:        Enzo Haussecker <enzo@sovereign.io>
+maintainer:    Enzo Haussecker <enzo@sovereign.io>
+stability:     Stable
 category:      Time
+homepage:      https://github.com/enzoh/time-exts
+bug-reports:   https://github.com/enzoh/time-exts/issues
 build-type:    Simple
 cabal-version: >=1.10
 
