@@ -1,2 +1,0 @@
-#+TITLE: Yet Another Haskell Time Library
-[[https://travis-ci.org/enzoh/time-exts][https://api.travis-ci.org/enzoh/time-exts.svg?branch=master]] [[https://hackage.haskell.org/package/time-exts][https://img.shields.io/hackage/v/time-exts.svg]] [[http://packdeps.haskellers.com/feed?needle=time-exts][https://img.shields.io/hackage-deps/v/time-exts.svg]]
