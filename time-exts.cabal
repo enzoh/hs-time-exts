@@ -1,6 +1,7 @@
 name:          time-exts
 version:       3.0.3
 synopsis:      Yet another time library
+description:   A stand-alone time library implementing Unix and UTC timestamps with varying granularity.
 license:       BSD3
 license-file:  LICENSE
 copyright:     2013-2017 Enzo Haussecker
@@ -12,6 +13,10 @@ homepage:      https://github.com/enzoh/time-exts
 bug-reports:   https://github.com/enzoh/time-exts/issues
 build-type:    Simple
 cabal-version: >=1.10
+
+extra-source-files:
+   README.md
+   stack.yaml
 
 library
    default-language:
