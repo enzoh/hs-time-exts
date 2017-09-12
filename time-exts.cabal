@@ -34,7 +34,7 @@ library
       Foreign.C.Time
    build-depends:
       attoparsec,
-      base >=4.8 && <4.10,
+      base >=4.8 && <4.11,
       bindings-DSL,
       deepseq,
       lens-simple,
