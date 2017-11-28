@@ -1,5 +1,5 @@
 name:          time-exts
-version:       3.0.3
+version:       3.0.4
 synopsis:      Yet another time library
 description:   A stand-alone time library implementing Unix and UTC timestamps with varying granularity.
 license:       BSD3
@@ -34,7 +34,7 @@ library
       Foreign.C.Time
    build-depends:
       attoparsec,
-      base >=4.8 && <4.11,
+      base,
       bindings-DSL,
       deepseq,
       lens-simple,
